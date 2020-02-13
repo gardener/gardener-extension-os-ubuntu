@@ -8,6 +8,18 @@ write_files:
   encoding: b64
   content: |
     bmV0d29yazoKICBjb25maWc6IGRpc2FibGVkCg==
+{{ if .IsContainerDEnabled -}}
+- path: '/etc/systemd/system/containerd.service.d'
+  permissions: '0644'
+  encoding: b64
+  content: |
+    W1NlcnZpY2VdCkV4ZWNTdGFydFByZT0vb3B0L2Jpbi9pbml0LWNvbnRhaW5lcmQ=
+- path: '/opt/bin/init-containerd'
+  permissions: '0744'
+  encoding: b64
+  content: |
+    RklMRT0vZXRjL2NvbnRhaW5lcmQvY29uZmlnLnRvbWwKaWYgWyAhIC1mICIkRklMRSIgXTsgdGhlbgogIG1rZGlyIC1wIC9ldGMvY29udGFpbmVyZAogIGNvbnRhaW5lcmQgY29uZmlnIGRlZmF1bHQgPiAiJEZJTEUiCmZp
+{{ end -}}
 {{ end -}}
 {{ range $_, $file := .Files -}}
 - path: '{{ $file.Path }}'
@@ -39,7 +51,11 @@ runcmd:
 {{ if .Bootstrap -}}
 - ln -s /usr/bin/docker /bin/docker
 - ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
+{{ if .IsContainerDEnabled -}}
+- systemctl restart containerd
+{{ else -}}
 - systemctl restart docker
+{{ end -}}
 {{ end -}}
 {{ range $_, $unit := .Units -}}
 - systemctl enable '{{ $unit.Name }}' && systemctl restart '{{ $unit.Name }}'

@@ -22,8 +22,11 @@ import (
 	"k8s.io/apimachinery/pkg/util/runtime"
 )
 
+const ContainerDPath = "/run/containerd/containerd.socket"
+
 var cmd = "/usr/bin/cloud-init clean && /usr/bin/cloud-init --file %s init"
 var cloudInitGenerator *ostemplate.CloudInitGenerator
+
 
 //go:generate packr2
 
@@ -34,7 +37,7 @@ func init() {
 
 	cloudInitTemplate, err := template.New("cloud-init").Parse(cloudInitTemplateString)
 	runtime.Must(err)
-	cloudInitGenerator = ostemplate.NewCloudInitGenerator(cloudInitTemplate, ostemplate.DefaultUnitsPath, cmd)
+	cloudInitGenerator = ostemplate.NewCloudInitGenerator(cloudInitTemplate, ostemplate.DefaultUnitsPath, cmd, ContainerDPath)
 }
 
 // CloudInitGenerator is the generator which will generate the cloud init yaml.
