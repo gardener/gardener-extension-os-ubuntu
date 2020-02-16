@@ -37,7 +37,7 @@ func init() {
 
 	cloudInitTemplate, err := template.New("cloud-init").Parse(cloudInitTemplateString)
 	runtime.Must(err)
-	cloudInitGenerator = ostemplate.NewCloudInitGenerator(cloudInitTemplate, ostemplate.DefaultUnitsPath, cmd, ContainerDPath)
+	cloudInitGenerator = ostemplate.NewCloudInitGeneratorWithContainerD(cloudInitTemplate, ostemplate.DefaultUnitsPath, cmd, ContainerDPath)
 }
 
 // CloudInitGenerator is the generator which will generate the cloud init yaml.
