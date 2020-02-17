@@ -22,7 +22,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/runtime"
 )
 
-const ContainerDPath = "/run/containerd/containerd.socket"
+const ContainerDPath = "/run/containerd/containerd.sock"
 
 var cmd = "/usr/bin/cloud-init clean && /usr/bin/cloud-init --file %s init"
 var cloudInitGenerator *ostemplate.CloudInitGenerator

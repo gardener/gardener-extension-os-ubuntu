@@ -9,7 +9,7 @@ write_files:
   content: |
     bmV0d29yazoKICBjb25maWc6IGRpc2FibGVkCg==
 {{ if .IsContainerDEnabled -}}
-- path: '/etc/systemd/system/containerd.service.d'
+- path: '/etc/systemd/system/containerd.service.d/10-exec_pre.config'
   permissions: '0644'
   encoding: b64
   content: |
@@ -18,7 +18,7 @@ write_files:
   permissions: '0744'
   encoding: b64
   content: |
-    RklMRT0vZXRjL2NvbnRhaW5lcmQvY29uZmlnLnRvbWwKaWYgWyAhIC1mICIkRklMRSIgXTsgdGhlbgogIG1rZGlyIC1wIC9ldGMvY29udGFpbmVyZAogIGNvbnRhaW5lcmQgY29uZmlnIGRlZmF1bHQgPiAiJEZJTEUiCmZp
+    IyEvYmluL2Jhc2gKCkZJTEU9L2V0Yy9jb250YWluZXJkL2NvbmZpZy50b21sCmlmIFsgISAtZiAiJEZJTEUiIF07IHRoZW4KICBta2RpciAtcCAvZXRjL2NvbnRhaW5lcmQKICBjb250YWluZXJkIGNvbmZpZyBkZWZhdWx0ID4gIiRGSUxFIgpmaQ==
 {{ end -}}
 {{ end -}}
 {{ range $_, $file := .Files -}}
