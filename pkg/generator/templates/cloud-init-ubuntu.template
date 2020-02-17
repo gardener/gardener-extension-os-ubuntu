@@ -21,6 +21,13 @@ write_files:
     IyEvYmluL2Jhc2gKCkZJTEU9L2V0Yy9jb250YWluZXJkL2NvbmZpZy50b21sCmlmIFsgISAtZiAiJEZJTEUiIF07IHRoZW4KICBta2RpciAtcCAvZXRjL2NvbnRhaW5lcmQKICBjb250YWluZXJkIGNvbmZpZyBkZWZhdWx0ID4gIiRGSUxFIgpmaQ==
 {{ end -}}
 {{ end -}}
+{{ if .IsContainerDEnabled -}}
+- path: '/etc/metadata/containerruntime'
+  permissions: '0644'
+  encoding: b64
+  content: |
+    Q09OVEFJTkVSRF9DT05GSUdfUEFUSD0vZXRjL2NvbnRhaW5lcmQvY29uZmlnLnRvbWwKQ09OVEFJTkVSX1JVTlRJTUVfQklOX1BBVEg9L3Vzci9iaW4K
+{{ end -}}
 {{ range $_, $file := .Files -}}
 - path: '{{ $file.Path }}'
 {{- if $file.Permissions }}
