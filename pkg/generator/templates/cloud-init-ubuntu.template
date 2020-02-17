@@ -9,7 +9,7 @@ write_files:
   content: |
     bmV0d29yazoKICBjb25maWc6IGRpc2FibGVkCg==
 {{ if .IsContainerDEnabled -}}
-- path: '/etc/systemd/system/containerd.service.d/10-exec_pre.config'
+- path: '/etc/systemd/system/containerd.service.d/10-exec_pre.conf'
   permissions: '0644'
   encoding: b64
   content: |
