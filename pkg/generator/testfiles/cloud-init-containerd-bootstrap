@@ -2,13 +2,11 @@
 apt_update: true
 packages: ['docker.io', 'socat', 'nfs-common', 'logrotate', 'jq', 'policykit-1']
 write_files:
-{{ if .Bootstrap -}}
 - path: '/etc/cloud/cloud.cfg.d/custom-networking.cfg'
   permissions: '0644'
   encoding: b64
   content: |
     bmV0d29yazoKICBjb25maWc6IGRpc2FibGVkCg==
-{{ if .IsContainerDEnabled -}}
 - path: '/etc/systemd/system/containerd.service.d/11-exec_config.conf'
   permissions: '0644'
   encoding: b64
@@ -19,52 +17,14 @@ write_files:
   encoding: b64
   content: |
     IyEvYmluL2Jhc2gKCkZJTEU9L2V0Yy9jb250YWluZXJkL2NvbmZpZy50b21sCmlmIFsgISAtZiAiJEZJTEUiIF07IHRoZW4KICBta2RpciAtcCAvZXRjL2NvbnRhaW5lcmQKICBjb250YWluZXJkIGNvbmZpZyBkZWZhdWx0ID4gIiRGSUxFIgpmaQ==
-{{ end -}}
-{{ end -}}
-{{ if .IsContainerDEnabled -}}
 - path: '/etc/metadata/containerruntime'
   permissions: '0644'
   encoding: b64
   content: |
     Q09OVEFJTkVSRF9TT0NLRVRfUEFUSD0vcnVuL2NvbnRhaW5lcmQvY29udGFpbmVyZC5zb2NrCkNPTlRBSU5FUkRfQ09ORklHX1BBVEg9L2V0Yy9jb250YWluZXJkL2NvbmZpZy50b21sCkNPTlRBSU5FUl9SVU5USU1FX0JJTl9QQVRIPS91c3IvYmlu
-{{ end -}}
-{{ range $_, $file := .Files -}}
-- path: '{{ $file.Path }}'
-{{- if $file.Permissions }}
-  permissions: '{{ $file.Permissions }}'
-{{- end }}
-  encoding: b64
-  content: |
-    {{ $file.Content }}
-{{ end -}}
-{{- range $_, $unit := .Units -}}
-{{ if $unit.Content -}}
-- path: '{{ $unit.Path }}'
-  encoding: b64
-  content: |
-    {{ $unit.Content }}
-{{ end -}}
-{{ if $unit.DropIns -}}
-{{ range $_, $dropIn := $unit.DropIns.Items -}}
-- path: '{{ $dropIn.Path }}'
-  encoding: b64
-  content: |
-    {{ $dropIn.Content }}
-{{- end -}}
-{{- end -}}
-{{- end }}
+
 runcmd:
 - systemctl daemon-reload
-{{ if .Bootstrap -}}
 - ln -s /usr/bin/docker /bin/docker
 - ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
 - systemctl restart docker
-{{ end -}}
-{{ if not .Bootstrap -}}
-{{ if .IsContainerDEnabled -}}
-- systemctl restart containerd
-{{ end -}}
-{{ end -}}
-{{ range $_, $unit := .Units -}}
-- systemctl enable '{{ $unit.Name }}' && systemctl restart '{{ $unit.Name }}'
-{{ end -}}

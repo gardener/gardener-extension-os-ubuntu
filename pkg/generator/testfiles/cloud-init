@@ -7,16 +7,6 @@ write_files:
   encoding: b64
   content: |
     bmV0d29yazoKICBjb25maWc6IGRpc2FibGVkCg==
-- path: '/etc/systemd/system/containerd.service.d/10-exec_pre.conf'
-  permissions: '0644'
-  encoding: b64
-  content: |
-    W1NlcnZpY2VdCkV4ZWNTdGFydFByZT0vb3B0L2Jpbi9pbml0LWNvbnRhaW5lcmQ=
-- path: '/opt/bin/init-containerd'
-  permissions: '0744'
-  encoding: b64
-  content: |
-    IyEvYmluL2Jhc2gKCkZJTEU9L2V0Yy9jb250YWluZXJkL2NvbmZpZy50b21sCmlmIFsgISAtZiAiJEZJTEUiIF07IHRoZW4KICBta2RpciAtcCAvZXRjL2NvbnRhaW5lcmQKICBjb250YWluZXJkIGNvbmZpZyBkZWZhdWx0ID4gIiRGSUxFIgpmaQ==
 - path: '/foo'
   permissions: '0600'
   encoding: b64
@@ -29,15 +19,10 @@ write_files:
 - path: '/etc/systemd/system/docker.service.d/10-docker-opts.conf'
   encoding: b64
   content: |
-    b3ZlcnJpZGU=- path: '/etc/systemd/system/kubelet.service'
-  encoding: b64
-  content: |
-    W1VuaXRdCkRlc2NyaXB0aW9uPWt1YmVsZXQgZGFlbW9uCgpbSW5zdGFsbF0KV2FudGVkQnk9bXVsdGktdXNlci50YXJnZXQKCltTZXJ2aWNlXQpFeGVjU3RhcnQ9L29wdC9iaW4va3ViZWxldCAtLWJvb3RzdHJhcC1rdWJlY29uZmlnPS92YXIvbGliL2t1YmVsZXQva3ViZWNvbmZpZy1ib290c3RyYXAgXAogIC0tdj0yIFwKICAkS1VCRUxFVF9FWFRSQV9BUkdTIFwKICAtLWNvbnRhaW5lci1ydW50aW1lPXJlbW90ZQogIC0tY29udGFpbmVyLXJ1bnRpbWUtZW5kcG9pbnQ9L3J1bi9jb250YWluZXJkL2NvbnRhaW5lcmQuc29jawpFeGVjU3RhcnRQcmU9L2Jpbi9zaA==
-
+    b3ZlcnJpZGU=
 runcmd:
 - systemctl daemon-reload
 - ln -s /usr/bin/docker /bin/docker
 - ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
-- systemctl restart containerd
+- systemctl restart docker
 - systemctl enable 'docker.service' && systemctl restart 'docker.service'
-- systemctl enable 'kubelet.service' && systemctl restart 'kubelet.service'
