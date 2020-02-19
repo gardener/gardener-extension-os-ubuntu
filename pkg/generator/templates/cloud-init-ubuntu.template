@@ -26,7 +26,7 @@ write_files:
   permissions: '0644'
   encoding: b64
   content: |
-    Q09OVEFJTkVSRF9TT0NLRVRfUEFUSD0vcnVuL2NvbnRhaW5lcmQvY29udGFpbmVyZC5zb2NrCkNPTlRBSU5FUkRfQ09ORklHX1BBVEg9L2V0Yy9jb250YWluZXJkL2NvbmZpZy50b21sCkNPTlRBSU5FUl9SVU5USU1FX0JJTl9QQVRIPS91c3IvYmlu
+    Q09OVEFJTkVSX1JVTlRJTUVfQklOX1BBVEg9L3Vzci9iaW4=
 {{ end -}}
 {{ range $_, $file := .Files -}}
 - path: '{{ $file.Path }}'
@@ -59,11 +59,6 @@ runcmd:
 - ln -s /usr/bin/docker /bin/docker
 - ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
 - systemctl restart docker
-{{ end -}}
-{{ if not .Bootstrap -}}
-{{ if .IsContainerDEnabled -}}
-- systemctl restart containerd
-{{ end -}}
 {{ end -}}
 {{ range $_, $unit := .Units -}}
 - systemctl enable '{{ $unit.Name }}' && systemctl restart '{{ $unit.Name }}'
