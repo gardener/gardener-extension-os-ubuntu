@@ -16,9 +16,6 @@ package generator_test
 
 import (
 	"github.com/gardener/gardener-extension-os-ubuntu/pkg/generator"
-	gen "github.com/gardener/gardener-extensions/pkg/controller/operatingsystemconfig/oscommon/generator"
-	"github.com/onsi/gomega"
-
 	"github.com/gardener/gardener-extensions/pkg/controller/operatingsystemconfig/oscommon/generator/test"
 	"github.com/gobuffalo/packr"
 	. "github.com/onsi/ginkgo"
@@ -29,18 +26,5 @@ var _ = Describe("Ubuntu OS Generator Test", func() {
 	Describe("Conformance Tests", func() {
 		var box = packr.NewBox("./testfiles")
 		test.DescribeTest(generator.CloudInitGenerator(), box)()
-
-		It("Should render bootstrap correctly with ContainerD enabled", func() {
-			expectedCloudInit, err := box.Find("cloud-init-containerd-bootstrap")
-			gomega.Expect(err).NotTo(gomega.HaveOccurred())
-
-			cloudInit, _, err := generator.CloudInitGenerator().Generate(&gen.OperatingSystemConfig{
-				IsContainerDEnabled: true,
-				Bootstrap: true,
-			})
-
-			gomega.Expect(err).NotTo(gomega.HaveOccurred())
-			gomega.Expect(cloudInit).To(gomega.Equal(expectedCloudInit))
-		})
 	})
 })
