@@ -1,5 +1,5 @@
 image:
-  repository: eu.gcr.io/gardener-project/gardener/extensions/os-ubuntu
+  repository: docker.io/nimrodoron/os-ubuntu
   tag: latest
   pullPolicy: IfNotPresent
 
