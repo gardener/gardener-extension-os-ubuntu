@@ -36,7 +36,7 @@ var _ = Describe("Ubuntu OS Generator Test", func() {
 			expectedCloudInit, err := box.Find("cloud-init-containerd")
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-			cloudInit, _, err := g.Generate(&commongen.OperatingSystemConfig{CRI: &v1alpha1.CRIConfig{Name: v1alpha1.CRINameContainerD,},})
+			cloudInit, _, err := g.Generate(&commongen.OperatingSystemConfig{CRI: &v1alpha1.CRIConfig{Name: v1alpha1.CRINameContainerD}})
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 			gomega.Expect(cloudInit).To(gomega.Equal(expectedCloudInit))

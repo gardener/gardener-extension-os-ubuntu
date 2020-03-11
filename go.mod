@@ -3,13 +3,14 @@ module github.com/gardener/gardener-extension-os-ubuntu
 go 1.13
 
 require (
-	github.com/gardener/gardener-extensions v1.3.0
+	github.com/gardener/gardener v1.1.1-0.20200311075931-7f7e52b986e7
+	github.com/gardener/gardener-extensions v1.4.1-0.20200311090109-20003a93f459
 	github.com/gobuffalo/packr v1.25.0
 	github.com/gobuffalo/packr/v2 v2.1.0
 	github.com/onsi/ginkgo v1.10.1
 	github.com/onsi/gomega v1.7.0
 	github.com/spf13/cobra v0.0.5
-	k8s.io/apimachinery v0.0.0-20191016060620-86f2f1b9c076
+	k8s.io/apimachinery v0.17.0
 	sigs.k8s.io/controller-runtime v0.4.0
 )
 
