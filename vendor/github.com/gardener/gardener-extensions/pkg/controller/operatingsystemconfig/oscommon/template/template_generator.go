@@ -18,6 +18,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"fmt"
+	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"path"
 	"text/template"
 
@@ -52,6 +53,7 @@ type dropInData struct {
 }
 
 type initScriptData struct {
+	CRI       *extensionsv1alpha1.CRIConfig
 	Files     []*fileData
 	Units     []*unitData
 	Bootstrap bool
@@ -117,6 +119,7 @@ func (t *CloudInitGenerator) Generate(data *generator.OperatingSystemConfig) ([]
 
 	var buf bytes.Buffer
 	if err := t.cloudInitTemplate.Execute(&buf, &initScriptData{
+		CRI:       data.CRI,
 		Files:     tFiles,
 		Units:     tUnits,
 		Bootstrap: data.Bootstrap,
@@ -140,4 +143,11 @@ func NewCloudInitGenerator(template *template.Template, unitsPath string, cmd st
 		unitsPath:         unitsPath,
 		cmd:               cmd,
 	}
+}
+
+func NewTemplate(name string) *template.Template {
+	return template.New(name).Funcs(template.FuncMap{
+		"isContainerDEnabled": func(cri *extensionsv1alpha1.CRIConfig) bool {
+			return cri != nil && cri.Name == extensionsv1alpha1.CRINameContainerD
+		}})
 }
