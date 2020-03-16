@@ -1,6 +1,5 @@
 #cloud-config
 apt_update: true
-packages: ['docker.io', 'socat', 'nfs-common', 'logrotate', 'jq', 'policykit-1']
 write_files:
 - path: '/etc/cloud/cloud.cfg.d/custom-networking.cfg'
   permissions: '0644'
@@ -21,6 +20,7 @@ write_files:
   content: |
     b3ZlcnJpZGU=
 runcmd:
+- until apt-get update -qq && apt-get install --no-upgrade -qqy docker.io socat nfs-common logrotate jq policykit-1; do sleep 1; done
 - systemctl daemon-reload
 - ln -s /usr/bin/docker /bin/docker
 - ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf

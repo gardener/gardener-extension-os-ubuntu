@@ -18,11 +18,12 @@ import (
 	"github.com/gardener/gardener-extension-os-ubuntu/pkg/generator"
 	commongen "github.com/gardener/gardener-extensions/pkg/controller/operatingsystemconfig/oscommon/generator"
 	v1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
-	"github.com/onsi/gomega"
 
 	"github.com/gardener/gardener-extensions/pkg/controller/operatingsystemconfig/oscommon/generator/test"
 	"github.com/gobuffalo/packr"
+
 	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("Ubuntu OS Generator Test", func() {
@@ -34,12 +35,12 @@ var _ = Describe("Ubuntu OS Generator Test", func() {
 
 		It("should render correctly with Containerd enabled", func() {
 			expectedCloudInit, err := box.Find("cloud-init-containerd")
-			gomega.Expect(err).NotTo(gomega.HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			cloudInit, _, err := g.Generate(&commongen.OperatingSystemConfig{CRI: &v1alpha1.CRIConfig{Name: v1alpha1.CRINameContainerD}})
 
-			gomega.Expect(err).NotTo(gomega.HaveOccurred())
-			gomega.Expect(cloudInit).To(gomega.Equal(expectedCloudInit))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(cloudInit).To(Equal(expectedCloudInit))
 		})
 	})
 })
