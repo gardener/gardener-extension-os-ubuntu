@@ -36,7 +36,7 @@ write_files:
 - path: '{{ $dropIn.Path }}'
   encoding: b64
   content: |
-    {{ $dropIn.Content }}
+    {{printf "%s\n" $dropIn.Content}}
 {{- end -}}
 {{- end -}}
 {{- end }}

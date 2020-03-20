@@ -19,6 +19,7 @@ write_files:
   encoding: b64
   content: |
     b3ZlcnJpZGU=
+
 runcmd:
 - until apt-get update -qq && apt-get install --no-upgrade -qqy docker.io socat nfs-common logrotate jq policykit-1; do sleep 1; done
 - systemctl daemon-reload
