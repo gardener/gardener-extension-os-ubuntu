@@ -15,12 +15,12 @@
 package generator_test
 
 import (
-	"github.com/gardener/gardener-extension-os-ubuntu/pkg/generator"
 	commongen "github.com/gardener/gardener-extensions/pkg/controller/operatingsystemconfig/oscommon/generator"
-	v1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
-
 	"github.com/gardener/gardener-extensions/pkg/controller/operatingsystemconfig/oscommon/generator/test"
+	"github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/gobuffalo/packr"
+
+	"github.com/gardener/gardener-extension-os-ubuntu/pkg/generator"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -38,6 +38,46 @@ var _ = Describe("Ubuntu OS Generator Test", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			cloudInit, _, err := g.Generate(&commongen.OperatingSystemConfig{CRI: &v1alpha1.CRIConfig{Name: v1alpha1.CRINameContainerD}})
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(cloudInit).To(Equal(expectedCloudInit))
+		})
+
+		It("should render correctly with drop-in units", func() {
+			expectedCloudInit, err := box.Find("cloud-init-with-drop-in")
+			Expect(err).NotTo(HaveOccurred())
+			content := `	
+[Service]
+ExecStartPre=/opt/bin/init-containerd`
+
+			osc := &commongen.OperatingSystemConfig{
+				CRI: &v1alpha1.CRIConfig{Name: v1alpha1.CRINameContainerD},
+				Units: []*commongen.Unit{
+					{
+						Name:    "containerd.service",
+						Content: nil,
+						DropIns: []*commongen.DropIn{
+							{
+								Name:    "10-exec-start-pre-init-config.conf",
+								Content: []byte(content),
+							},
+							{
+								Name:    "12-exec-start-pre-init-config.conf",
+								Content: []byte(content),
+							},
+						},
+					},
+					{
+						Name:    "mtu-customizer.service",
+						Content: []byte(content),
+					},
+					{
+						Name:    "other.service",
+						Content: []byte(content),
+					},
+				},
+			}
+			cloudInit, _, err := g.Generate(osc)
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(cloudInit).To(Equal(expectedCloudInit))
