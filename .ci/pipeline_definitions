@@ -12,7 +12,6 @@ gardener-extension-os-ubuntu:
             image: 'eu.gcr.io/gardener-project/gardener/extensions/os-ubuntu'
             dockerfile: 'Dockerfile'
             target: gardener-extension-os-ubuntu
-    steps: ~
   jobs:
     head-update:
       traits:

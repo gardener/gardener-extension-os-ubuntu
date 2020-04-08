@@ -267,4 +267,12 @@ const (
 	// EventResourceReferenced indicates that the resource deletion is in waiting mode because the resource is still
 	// being referenced by at least one other resource (e.g. a SecretBinding is still referenced by a Shoot)
 	EventResourceReferenced = "ResourceReferenced"
+
+	// LabelPodMaintenanceRestart is a constant for a label that describes that a pod should be restarted during maintenance.
+	LabelPodMaintenanceRestart = "maintenance.gardener.cloud/restart"
+
+	// LabelWorkerPool is a constant for a label that indicates the worker pool the node belongs to
+	LabelWorkerPool = "worker.gardener.cloud/pool"
+	// LabelWorkerPool is a deprecated constant for a label that indicates the worker pool the node belongs to
+	LabelWorkerPoolDeprecated = "worker.garden.sapcloud.io/group"
 )

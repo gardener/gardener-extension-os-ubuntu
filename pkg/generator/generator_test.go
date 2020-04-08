@@ -15,8 +15,8 @@
 package generator_test
 
 import (
-	commongen "github.com/gardener/gardener-extensions/pkg/controller/operatingsystemconfig/oscommon/generator"
-	"github.com/gardener/gardener-extensions/pkg/controller/operatingsystemconfig/oscommon/generator/test"
+	commongen "github.com/gardener/gardener/extensions/pkg/controller/operatingsystemconfig/oscommon/generator"
+	"github.com/gardener/gardener/extensions/pkg/controller/operatingsystemconfig/oscommon/generator/test"
 	"github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/gobuffalo/packr"
 
