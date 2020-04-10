@@ -24,6 +24,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var (
+	ctrlName = "ubuntu"
+	osTypes  = []string{"ubuntu"}
+)
+
 // NewControllerCommand returns a new Command with a new Generator
 func NewControllerCommand(ctx context.Context) *cobra.Command {
 	g := generator.CloudInitGenerator()
@@ -31,7 +36,7 @@ func NewControllerCommand(ctx context.Context) *cobra.Command {
 		cmd.LogErrAndExit(nil, "Could not create Generator")
 	}
 
-	cmd := app.NewControllerCommand(ctx, "ubuntu", g)
+	cmd := app.NewControllerCommand(ctx, ctrlName, osTypes, g)
 
 	return cmd
 }
