@@ -1,6 +1,11 @@
 #cloud-config
 apt_update: true
 write_files:
+- path: '/etc/cloud/cloud.cfg.d/custom-networking.cfg'
+  permissions: '0644'
+  encoding: b64
+  content: |
+    bmV0d29yazoKICBjb25maWc6IGRpc2FibGVkCg==
 - path: '/etc/systemd/system/containerd.service.d/11-exec_config.conf'
   permissions: '0644'
   encoding: b64
@@ -10,3 +15,5 @@ write_files:
 runcmd:
 - until apt-get update -qq && apt-get install --no-upgrade -qqy docker.io socat nfs-common logrotate jq policykit-1; do sleep 1; done
 - systemctl daemon-reload
+
+- systemctl enable containerd && systemctl restart containerd
