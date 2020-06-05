@@ -15,13 +15,12 @@
 package generator_test
 
 import (
+	"github.com/gardener/gardener-extension-os-ubuntu/pkg/generator"
+
 	commongen "github.com/gardener/gardener/extensions/pkg/controller/operatingsystemconfig/oscommon/generator"
 	"github.com/gardener/gardener/extensions/pkg/controller/operatingsystemconfig/oscommon/generator/test"
 	"github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/gobuffalo/packr"
-
-	"github.com/gardener/gardener-extension-os-ubuntu/pkg/generator"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -33,28 +32,42 @@ var _ = Describe("Ubuntu OS Generator Test", func() {
 		g := generator.CloudInitGenerator()
 		test.DescribeTest(generator.CloudInitGenerator(), box)()
 
-		It("should render correctly with Containerd enabled", func() {
-			expectedCloudInit, err := box.Find("cloud-init-containerd")
+		It("should render correctly with Containerd enabled during Bootstrap (osc.type = provision)", func() {
+			expectedCloudInit, err := box.Find("cloud-init-containerd-provision")
 			Expect(err).NotTo(HaveOccurred())
+			expected := string(expectedCloudInit)
 
-			cloudInit, _, err := g.Generate(&commongen.OperatingSystemConfig{CRI: &v1alpha1.CRIConfig{Name: v1alpha1.CRINameContainerD}})
+			cloudInit, _, err := g.Generate(&commongen.OperatingSystemConfig{CRI: &v1alpha1.CRIConfig{Name: v1alpha1.CRINameContainerD}, Bootstrap: true})
 
 			Expect(err).NotTo(HaveOccurred())
-			Expect(cloudInit).To(Equal(expectedCloudInit))
+			Expect(string(cloudInit)).To(Equal(expected))
+		})
+
+		It("should render correctly with Containerd enabled but not during Bootstrap (osc.type = reconcile)", func() {
+			expectedCloudInit, err := box.Find("cloud-init-containerd-reconcile")
+			Expect(err).NotTo(HaveOccurred())
+			expected := string(expectedCloudInit)
+
+			cloudInit, _, err := g.Generate(&commongen.OperatingSystemConfig{CRI: &v1alpha1.CRIConfig{Name: v1alpha1.CRINameContainerD}, Bootstrap: false})
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(string(cloudInit)).To(Equal(expected))
 		})
 
 		It("should render correctly with drop-in units", func() {
 			expectedCloudInit, err := box.Find("cloud-init-with-drop-in")
+			expected := string(expectedCloudInit)
+
 			Expect(err).NotTo(HaveOccurred())
 			content := `	
 [Service]
 ExecStartPre=/opt/bin/init-containerd`
 
 			osc := &commongen.OperatingSystemConfig{
-				CRI: &v1alpha1.CRIConfig{Name: v1alpha1.CRINameContainerD},
+				Bootstrap: false,
 				Units: []*commongen.Unit{
 					{
-						Name:    "containerd.service",
+						Name:    "abc.service",
 						Content: nil,
 						DropIns: []*commongen.DropIn{
 							{
@@ -80,7 +93,7 @@ ExecStartPre=/opt/bin/init-containerd`
 			cloudInit, _, err := g.Generate(osc)
 
 			Expect(err).NotTo(HaveOccurred())
-			Expect(cloudInit).To(Equal(expectedCloudInit))
+			Expect(string(cloudInit)).To(Equal(expected))
 		})
 	})
 })
