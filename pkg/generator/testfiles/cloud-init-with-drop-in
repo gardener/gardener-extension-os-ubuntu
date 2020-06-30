@@ -4,19 +4,19 @@ write_files:
 - path: '/etc/systemd/system/abc.service.d/10-exec-start-pre-init-config.conf'
   encoding: b64
   content: |
-    CQpbU2VydmljZV0KRXhlY1N0YXJ0UHJlPS9vcHQvYmluL2luaXQtY29udGFpbmVyZA==
+    W1NlcnZpY2VdCkV4ZWNTdGFydFByZT0vb3B0L2Jpbi9pbml0LWNvbnRhaW5lcmQ=
 - path: '/etc/systemd/system/abc.service.d/12-exec-start-pre-init-config.conf'
   encoding: b64
   content: |
-    CQpbU2VydmljZV0KRXhlY1N0YXJ0UHJlPS9vcHQvYmluL2luaXQtY29udGFpbmVyZA==
+    W1NlcnZpY2VdCkV4ZWNTdGFydFByZT0vb3B0L2Jpbi9pbml0LWNvbnRhaW5lcmQ=
 - path: '/etc/systemd/system/mtu-customizer.service'
   encoding: b64
   content: |
-    CQpbU2VydmljZV0KRXhlY1N0YXJ0UHJlPS9vcHQvYmluL2luaXQtY29udGFpbmVyZA==
+    W1NlcnZpY2VdCkV4ZWNTdGFydFByZT0vb3B0L2Jpbi9pbml0LWNvbnRhaW5lcmQ=
 - path: '/etc/systemd/system/other.service'
   encoding: b64
   content: |
-    CQpbU2VydmljZV0KRXhlY1N0YXJ0UHJlPS9vcHQvYmluL2luaXQtY29udGFpbmVyZA==
+    W1NlcnZpY2VdCkV4ZWNTdGFydFByZT0vb3B0L2Jpbi9pbml0LWNvbnRhaW5lcmQ=
 
 runcmd:
 - until apt-get update -qq && apt-get install --no-upgrade -qqy docker.io socat nfs-common logrotate jq policykit-1; do sleep 1; done
