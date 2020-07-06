@@ -16,6 +16,7 @@ package generator
 
 import (
 	ostemplate "github.com/gardener/gardener/extensions/pkg/controller/operatingsystemconfig/oscommon/template"
+	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/gobuffalo/packr/v2"
 	"k8s.io/apimachinery/pkg/util/runtime"
 )
@@ -32,10 +33,14 @@ func init() {
 
 	cloudInitTemplate, err := ostemplate.NewTemplate("cloud-init").Parse(cloudInitTemplateString)
 	runtime.Must(err)
-	cloudInitGenerator = ostemplate.NewCloudInitGenerator(cloudInitTemplate, ostemplate.DefaultUnitsPath, cmd)
+	cloudInitGenerator = ostemplate.NewCloudInitGenerator(cloudInitTemplate, ostemplate.DefaultUnitsPath, cmd, additionalValues)
 }
 
 // CloudInitGenerator is the generator which will generate the cloud init yaml.
 func CloudInitGenerator() *ostemplate.CloudInitGenerator {
 	return cloudInitGenerator
+}
+
+func additionalValues(*extensionsv1alpha1.OperatingSystemConfig) (map[string]interface{}, error) {
+	return nil, nil
 }
