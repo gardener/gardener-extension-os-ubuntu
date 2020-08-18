@@ -25,6 +25,6 @@ runcmd:
 - systemctl daemon-reload
 - ln -s /usr/bin/docker /bin/docker
 - ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
-- systemctl restart docker
+- systemctl enable docker.service && systemctl enable docker.socket && systemctl restart docker
 
 - systemctl enable 'docker.service' && systemctl restart 'docker.service'

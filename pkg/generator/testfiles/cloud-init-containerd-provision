@@ -13,7 +13,6 @@ write_files:
     W1NlcnZpY2VdCkV4ZWNTdGFydD0KRXhlY1N0YXJ0PS91c3IvYmluL2NvbnRhaW5lcmQgLS1jb25maWc9L2V0Yy9jb250YWluZXJkL2NvbmZpZy50b21s
 
 runcmd:
-- until apt-get update -qq && apt-get install --no-upgrade -qqy docker.io socat nfs-common logrotate jq policykit-1; do sleep 1; done
+- until apt-get update -qq && apt-get install --no-upgrade -qqy containerd socat nfs-common logrotate jq policykit-1; do sleep 1; done
 - systemctl daemon-reload
-
 - systemctl enable containerd && systemctl restart containerd
