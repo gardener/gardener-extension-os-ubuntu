@@ -26,7 +26,7 @@ import (
 
 var (
 	ctrlName = "ubuntu"
-	osTypes  = []string{"ubuntu"}
+	osTypes  = []string{"ubuntu", "ubuntu-pro"}
 )
 
 // NewControllerCommand returns a new Command with a new Generator
