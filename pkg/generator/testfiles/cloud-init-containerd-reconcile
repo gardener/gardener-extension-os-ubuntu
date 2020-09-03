@@ -4,6 +4,4 @@ write_files:
 
 runcmd:
 - until apt-get update -qq && apt-get install --no-upgrade -qqy docker.io socat nfs-common logrotate jq policykit-1; do sleep 1; done
-- if dmidecode | grep -i -e manufacturer | grep -i -q kubevirt; then until apt-get install --no-upgrade -qqy qemu-guest-agent; do sleep 1; done; fi
 - systemctl daemon-reload
-- if systemctl --all --type service | grep -i -q qemu-guest-agent; then systemctl enable 'qemu-guest-agent' && systemctl restart 'qemu-guest-agent'; fi
