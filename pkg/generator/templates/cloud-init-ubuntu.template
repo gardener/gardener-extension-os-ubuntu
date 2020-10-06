@@ -1,5 +1,5 @@
 #cloud-config
-apt_update: true
+apt_update: false
 write_files:
 {{ if .Bootstrap -}}
 - path: '/etc/cloud/cloud.cfg.d/custom-networking.cfg'
