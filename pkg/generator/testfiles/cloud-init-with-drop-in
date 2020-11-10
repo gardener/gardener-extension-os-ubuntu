@@ -1,5 +1,6 @@
 #cloud-config
 apt_update: false
+manage_etc_hosts: true
 write_files:
 - path: '/etc/systemd/system/abc.service.d/10-exec-start-pre-init-config.conf'
   encoding: b64
