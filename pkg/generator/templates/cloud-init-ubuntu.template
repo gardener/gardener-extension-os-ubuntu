@@ -1,5 +1,6 @@
 #cloud-config
 apt_update: false
+manage_etc_hosts: true
 write_files:
 {{ if .Bootstrap -}}
 - path: '/etc/cloud/cloud.cfg.d/custom-networking.cfg'
