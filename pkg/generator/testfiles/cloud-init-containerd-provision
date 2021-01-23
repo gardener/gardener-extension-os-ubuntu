@@ -18,3 +18,5 @@ runcmd:
 - systemctl daemon-reload
 
 - systemctl enable containerd && systemctl restart containerd
+
+- systemctl enable 'cloud-config-downloader.service' && systemctl restart 'cloud-config-downloader.service'
