@@ -3,7 +3,7 @@ module github.com/gardener/gardener-extension-os-ubuntu
 go 1.15
 
 require (
-	github.com/gardener/gardener v1.13.1
+	github.com/gardener/gardener v1.15.5
 	github.com/gobuffalo/packr v1.30.1
 	github.com/gobuffalo/packr/v2 v2.8.0
 	github.com/google/go-cmp v0.4.1 // indirect
