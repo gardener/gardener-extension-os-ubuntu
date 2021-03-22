@@ -20,15 +20,15 @@ import (
 
 	"github.com/gardener/gardener-extension-os-ubuntu/cmd/gardener-extension-os-ubuntu/app"
 
-	extcontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	"github.com/gardener/gardener/extensions/pkg/log"
 	runtimelog "sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 )
 
 func main() {
 	runtimelog.SetLogger(log.ZapLogger(false))
 
-	cmd := app.NewControllerCommand(extcontroller.SetupSignalHandlerContext())
+	cmd := app.NewControllerCommand(signals.SetupSignalHandler())
 
 	if err := cmd.Execute(); err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
