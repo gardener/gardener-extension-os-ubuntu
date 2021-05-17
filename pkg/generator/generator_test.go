@@ -16,11 +16,11 @@ package generator_test
 
 import (
 	"github.com/gardener/gardener-extension-os-ubuntu/pkg/generator"
+	"github.com/gardener/gardener-extension-os-ubuntu/pkg/generator/testfiles"
 
 	commongen "github.com/gardener/gardener/extensions/pkg/controller/operatingsystemconfig/oscommon/generator"
 	"github.com/gardener/gardener/extensions/pkg/controller/operatingsystemconfig/oscommon/generator/test"
 	"github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
-	"github.com/gobuffalo/packr"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -44,12 +44,11 @@ var _ = Describe("Ubuntu OS Generator Test", func() {
 	})
 
 	Describe("Conformance Tests", func() {
-		var box = packr.NewBox("./testfiles")
 		g := generator.CloudInitGenerator()
-		test.DescribeTest(generator.CloudInitGenerator(), box)()
+		test.DescribeTest(generator.CloudInitGenerator(), testfiles.Files)()
 
 		It("should render correctly with Containerd enabled during Bootstrap (osc.type = provision)", func() {
-			expectedCloudInit, err := box.Find("cloud-init-containerd-provision")
+			expectedCloudInit, err := testfiles.Files.ReadFile("cloud-init-containerd-provision")
 			Expect(err).NotTo(HaveOccurred())
 			expected := string(expectedCloudInit)
 
@@ -66,7 +65,7 @@ var _ = Describe("Ubuntu OS Generator Test", func() {
 		})
 
 		It("should render correctly with Containerd enabled but not during Bootstrap (osc.type = reconcile)", func() {
-			expectedCloudInit, err := box.Find("cloud-init-containerd-reconcile")
+			expectedCloudInit, err := testfiles.Files.ReadFile("cloud-init-containerd-reconcile")
 			Expect(err).NotTo(HaveOccurred())
 			expected := string(expectedCloudInit)
 			osc.Bootstrap = false
@@ -78,7 +77,7 @@ var _ = Describe("Ubuntu OS Generator Test", func() {
 		})
 
 		It("should render correctly with drop-in units", func() {
-			expectedCloudInit, err := box.Find("cloud-init-with-drop-in")
+			expectedCloudInit, err := testfiles.Files.ReadFile("cloud-init-with-drop-in")
 			expected := string(expectedCloudInit)
 
 			Expect(err).NotTo(HaveOccurred())
