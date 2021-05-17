@@ -1,32 +1,33 @@
-#cloud-config
-apt_update: false
-manage_etc_hosts: true
-write_files:
-- path: '/etc/cloud/cloud.cfg.d/custom-networking.cfg'
-  permissions: '0644'
-  encoding: b64
-  content: |
-    bmV0d29yazoKICBjb25maWc6IGRpc2FibGVkCg==
-- path: '/foo'
-  permissions: '0600'
-  encoding: b64
-  content: |
-    YmFy
-- path: '/etc/systemd/system/docker.service'
-  encoding: b64
-  content: |
-    dW5pdA==
-- path: '/etc/systemd/system/docker.service.d/10-docker-opts.conf'
-  encoding: b64
-  content: |
-    b3ZlcnJpZGU=
-
-runcmd:
-- until apt-get update -qq && apt-get install --no-upgrade -qqy docker.io socat nfs-common logrotate jq policykit-1; do sleep 1; done
-- systemctl daemon-reload
-- ln -s /usr/bin/docker /bin/docker
-- ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
-- systemctl restart docker
+#!/bin/bash
+mkdir -p /etc/cloud/cloud.cfg.d/
+cat <<EOF > /etc/cloud/cloud.cfg.d/custom-networking.cfg
+network:
+  config: disabled
+EOF
+chmod 0644 /etc/cloud/cloud.cfg.d/custom-networking.cfg
 
 
-- systemctl enable 'docker.service' && systemctl restart 'docker.service'
+
+mkdir -p '/'
+cat << EOF | base64 -d > '/foo'
+YmFy
+EOF
+chmod '0600' '/foo'
+
+
+
+cat << EOF | base64 -d > '/etc/systemd/system/docker.service'
+dW5pdA==
+EOF
+
+mkdir -p '/etc/systemd/system/docker.service.d'
+cat << EOF | base64 -d > '/etc/systemd/system/docker.service.d/10-docker-opts.conf'
+b3ZlcnJpZGU=
+EOF
+
+until apt-get update -qq && apt-get install --no-upgrade -qqy docker.io socat nfs-common logrotate jq policykit-1; do sleep 1; done
+systemctl daemon-reload
+ln -s /usr/bin/docker /bin/docker
+ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
+systemctl restart docker
+systemctl enable 'docker.service' && systemctl restart 'docker.service'

@@ -21,7 +21,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/runtime"
 )
 
-var cmd = "/usr/bin/cloud-init clean && /usr/bin/cloud-init --file %s init"
+var cmd = "/usr/bin/env bash %s"
 var cloudInitGenerator *ostemplate.CloudInitGenerator
 
 //go:generate packr2

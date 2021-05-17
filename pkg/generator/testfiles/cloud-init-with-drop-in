@@ -1,30 +1,27 @@
-#cloud-config
-apt_update: false
-manage_etc_hosts: true
-write_files:
-- path: '/etc/systemd/system/abc.service.d/10-exec-start-pre-init-config.conf'
-  encoding: b64
-  content: |
-    W1NlcnZpY2VdCkV4ZWNTdGFydFByZT0vb3B0L2Jpbi9pbml0LWNvbnRhaW5lcmQ=
-- path: '/etc/systemd/system/abc.service.d/12-exec-start-pre-init-config.conf'
-  encoding: b64
-  content: |
-    W1NlcnZpY2VdCkV4ZWNTdGFydFByZT0vb3B0L2Jpbi9pbml0LWNvbnRhaW5lcmQ=
-- path: '/etc/systemd/system/mtu-customizer.service'
-  encoding: b64
-  content: |
-    W1NlcnZpY2VdCkV4ZWNTdGFydFByZT0vb3B0L2Jpbi9pbml0LWNvbnRhaW5lcmQ=
-- path: '/etc/systemd/system/other.service'
-  encoding: b64
-  content: |
-    W1NlcnZpY2VdCkV4ZWNTdGFydFByZT0vb3B0L2Jpbi9pbml0LWNvbnRhaW5lcmQ=
+#!/bin/bash
 
-runcmd:
-- until apt-get update -qq && apt-get install --no-upgrade -qqy docker.io socat nfs-common logrotate jq policykit-1; do sleep 1; done
-- systemctl daemon-reload
 
-- systemctl enable 'abc.service' && systemctl restart 'abc.service'
 
-- systemctl enable 'mtu-customizer.service' && systemctl restart 'mtu-customizer.service'
 
-- systemctl enable 'other.service' && systemctl restart 'other.service'
+
+
+
+mkdir -p '/etc/systemd/system/abc.service.d'
+cat << EOF | base64 -d > '/etc/systemd/system/abc.service.d/10-exec-start-pre-init-config.conf'
+W1NlcnZpY2VdCkV4ZWNTdGFydFByZT0vb3B0L2Jpbi9pbml0LWNvbnRhaW5lcmQ=
+EOFcat << EOF | base64 -d > '/etc/systemd/system/abc.service.d/12-exec-start-pre-init-config.conf'
+W1NlcnZpY2VdCkV4ZWNTdGFydFByZT0vb3B0L2Jpbi9pbml0LWNvbnRhaW5lcmQ=
+EOFcat << EOF | base64 -d > '/etc/systemd/system/mtu-customizer.service'
+W1NlcnZpY2VdCkV4ZWNTdGFydFByZT0vb3B0L2Jpbi9pbml0LWNvbnRhaW5lcmQ=
+EOF
+cat << EOF | base64 -d > '/etc/systemd/system/other.service'
+W1NlcnZpY2VdCkV4ZWNTdGFydFByZT0vb3B0L2Jpbi9pbml0LWNvbnRhaW5lcmQ=
+EOF
+
+
+
+until apt-get update -qq && apt-get install --no-upgrade -qqy docker.io socat nfs-common logrotate jq policykit-1; do sleep 1; done
+systemctl daemon-reload
+systemctl enable 'abc.service' && systemctl restart 'abc.service'
+systemctl enable 'mtu-customizer.service' && systemctl restart 'mtu-customizer.service'
+systemctl enable 'other.service' && systemctl restart 'other.service'

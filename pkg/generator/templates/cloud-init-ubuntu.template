@@ -1,60 +1,65 @@
-#cloud-config
-apt_update: false
-manage_etc_hosts: true
-write_files:
-{{ if .Bootstrap -}}
-- path: '/etc/cloud/cloud.cfg.d/custom-networking.cfg'
-  permissions: '0644'
-  encoding: b64
-  content: |
-    bmV0d29yazoKICBjb25maWc6IGRpc2FibGVkCg==
-{{ end -}}
-{{ if and (isContainerDEnabled .CRI)  .Bootstrap -}}
-- path: '/etc/systemd/system/containerd.service.d/11-exec_config.conf'
-  permissions: '0644'
-  encoding: b64
-  content: |
-    W1NlcnZpY2VdCkV4ZWNTdGFydD0KRXhlY1N0YXJ0PS91c3IvYmluL2NvbnRhaW5lcmQgLS1jb25maWc9L2V0Yy9jb250YWluZXJkL2NvbmZpZy50b21s
-{{ end -}}
+#!/bin/bash
+
+{{- define "put-content" -}}
+cat << EOF | base64 -d > '{{ .Path }}'
+{{ .Content }}
+EOF
+{{- end -}}
+
+{{ if .Bootstrap }}
+mkdir -p /etc/cloud/cloud.cfg.d/
+cat <<EOF > /etc/cloud/cloud.cfg.d/custom-networking.cfg
+network:
+  config: disabled
+EOF
+chmod 0644 /etc/cloud/cloud.cfg.d/custom-networking.cfg
+{{- end }}
+
+{{ if and (isContainerDEnabled .CRI) .Bootstrap }}
+mkdir -p /etc/systemd/system/containerd.service.d
+cat <<EOF > /etc/systemd/system/containerd.service.d/11-exec_config.conf
+[Service]
+ExecStart=
+ExecStart=/usr/bin/containerd --config=/etc/containerd/config.toml
+EOF
+chmod 0644 /etc/systemd/system/containerd.service.d/11-exec_config.conf
+{{- end }}
+
 {{ range $_, $file := .Files -}}
-- path: '{{ $file.Path }}'
-{{- if $file.Permissions }}
-  permissions: '{{ $file.Permissions }}'
-{{- end }}
-  encoding: b64
-  content: |
-    {{ $file.Content }}
-{{ end -}}
-{{- range $_, $unit := .Units -}}
-{{ if $unit.Content -}}
-- path: '{{ $unit.Path }}'
-  encoding: b64
-  content: |
-    {{ $unit.Content }}
-{{ end -}}
-{{ if $unit.DropIns -}}
-{{ range $_, $dropIn := $unit.DropIns.Items -}}
-- path: '{{ $dropIn.Path }}'
-  encoding: b64
-  content: |
-    {{printf "%s\n" $dropIn.Content}}
-{{- end -}}
-{{- end -}}
-{{- end }}
-runcmd:
-- until apt-get update -qq && apt-get install --no-upgrade -qqy docker.io socat nfs-common logrotate jq policykit-1; do sleep 1; done
-- systemctl daemon-reload
-{{ if .Bootstrap -}}
-{{- if isContainerDEnabled .CRI }}
-- systemctl enable containerd && systemctl restart containerd
-{{- else -}}
-- ln -s /usr/bin/docker /bin/docker
-- ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
-- systemctl restart docker
+mkdir -p '{{ $file.Dirname }}'
+{{ template "put-content" $file }}
+{{ if $file.Permissions -}}
+chmod '{{ $file.Permissions }}' '{{ $file.Path }}'
 {{ end }}
-{{ end -}}
+{{ end }}
+
 {{ range $_, $unit := .Units -}}
+{{ if $unit.Content -}}
+{{ template "put-content" $unit }}
+{{- end }}
+{{ if $unit.DropIns }}
+mkdir -p '{{ $unit.DropIns.Path }}'
+{{ range $_, $dropIn := $unit.DropIns.Items -}}
+{{ template "put-content" $dropIn }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+until apt-get update -qq && apt-get install --no-upgrade -qqy docker.io socat nfs-common logrotate jq policykit-1; do sleep 1; done
+systemctl daemon-reload
+
+{{- if .Bootstrap }}
+{{- if isContainerDEnabled .CRI }}
+systemctl enable containerd && systemctl restart containerd
+{{- else }}
+ln -s /usr/bin/docker /bin/docker
+ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
+systemctl restart docker
+{{- end }}
+{{- end }}
+
+{{- range $_, $unit := .Units }}
 {{- if or (ne $unit.Name "cloud-config-downloader.service") ($.Bootstrap) }}
-- systemctl enable '{{ $unit.Name }}' && systemctl restart '{{ $unit.Name }}'
-{{ end -}}
-{{ end -}}
+systemctl enable '{{ $unit.Name }}' && systemctl restart '{{ $unit.Name }}'
+{{- end }}
+{{- end }}
