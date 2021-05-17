@@ -19,26 +19,25 @@ import (
 	"fmt"
 
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
-	gardencorelisters "github.com/gardener/gardener/pkg/client/core/listers/core/v1beta1"
 	"github.com/gardener/gardener/pkg/logger"
 
 	"k8s.io/apimachinery/pkg/api/meta"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // DetermineShootsAssociatedTo gets a <shootLister> to determine the Shoots resources which are associated
 // to given <obj> (either a CloudProfile a or a Seed object).
-func DetermineShootsAssociatedTo(obj interface{}, shootLister gardencorelisters.ShootLister) ([]string, error) {
-	var associatedShoots []string
-	shoots, err := shootLister.List(labels.Everything())
-	if err != nil {
+func DetermineShootsAssociatedTo(ctx context.Context, gardenClient client.Reader, obj interface{}) ([]string, error) {
+	shootList := &gardencorev1beta1.ShootList{}
+	if err := gardenClient.List(ctx, shootList); err != nil {
 		logger.Logger.Info(err.Error())
 		return nil, err
 	}
 
-	for _, shoot := range shoots {
+	var associatedShoots []string
+
+	for _, shoot := range shootList.Items {
 		switch t := obj.(type) {
 		case *gardencorev1beta1.CloudProfile:
 			cloudProfile := obj.(*gardencorev1beta1.CloudProfile)
@@ -59,19 +58,20 @@ func DetermineShootsAssociatedTo(obj interface{}, shootLister gardencorelisters.
 			return nil, fmt.Errorf("unable to determine Shoot associations, due to unknown type %t", t)
 		}
 	}
+
 	return associatedShoots, nil
 }
 
 // DetermineSecretBindingAssociations gets a <bindingLister> to determine the SecretBinding
 // resources which are associated to given Quota <obj>.
-func DetermineSecretBindingAssociations(quota *gardencorev1beta1.Quota, bindingLister gardencorelisters.SecretBindingLister) ([]string, error) {
-	var associatedBindings []string
-	bindings, err := bindingLister.List(labels.Everything())
-	if err != nil {
+func DetermineSecretBindingAssociations(ctx context.Context, c client.Client, quota *gardencorev1beta1.Quota) ([]string, error) {
+	bindings := &gardencorev1beta1.SecretBindingList{}
+	if err := c.List(ctx, bindings); err != nil {
 		return nil, err
 	}
 
-	for _, binding := range bindings {
+	var associatedBindings []string
+	for _, binding := range bindings.Items {
 		for _, quotaRef := range binding.Quotas {
 			if quotaRef.Name == quota.Name && quotaRef.Namespace == quota.Namespace {
 				associatedBindings = append(associatedBindings, fmt.Sprintf("%s/%s", binding.Namespace, binding.Name))
