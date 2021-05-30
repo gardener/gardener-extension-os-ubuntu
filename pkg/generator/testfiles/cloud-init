@@ -15,7 +15,7 @@ EOF
 chmod '0600' '/foo'
 
 mkdir -p '/'
-cat << EOF | base64 -d > '/foo2'
+cat << EOF > '/foo2'
 bar
 EOF
 
