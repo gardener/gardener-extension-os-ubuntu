@@ -231,6 +231,10 @@ func SetDefaults_Shoot(obj *Shoot) {
 	if obj.Spec.Maintenance == nil {
 		obj.Spec.Maintenance = &Maintenance{}
 	}
+
+	if obj.Spec.Kubernetes.KubeAPIServer.EnableAnonymousAuthentication == nil {
+		obj.Spec.Kubernetes.KubeAPIServer.EnableAnonymousAuthentication = pointer.BoolPtr(false)
+	}
 }
 
 // SetDefaults_Maintenance sets default values for Maintenance objects.
@@ -313,8 +317,8 @@ func SetDefaults_ControllerResource(obj *ControllerResource) {
 	}
 }
 
-// SetDefaults_ControllerDeployment sets default values for ControllerDeployment objects.
-func SetDefaults_ControllerDeployment(obj *ControllerDeployment) {
+// SetDefaults_ControllerRegistrationDeployment sets default values for ControllerDeployment objects.
+func SetDefaults_ControllerRegistrationDeployment(obj *ControllerRegistrationDeployment) {
 	p := ControllerDeploymentPolicyOnDemand
 	if obj.Policy == nil {
 		obj.Policy = &p

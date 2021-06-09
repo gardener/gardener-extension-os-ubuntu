@@ -37,7 +37,7 @@ const BastionResource = "Bastion"
 // to provide SSH access to shoot nodes.
 type Bastion struct {
 	metav1.TypeMeta `json:",inline"`
-	// Standard object metadata.
+	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 	// Spec is the specification of this Bastion.
 	Spec BastionSpec `json:"spec"`
@@ -63,7 +63,7 @@ type BastionSpec struct {
 	// UserData is the base64-encoded user data for the bastion instance. This should
 	// contain code to provision the SSH key on the bastion instance.
 	UserData []byte `json:"userData"`
-	// Ingress controls from where the creation bastion host should be reachable.
+	// Ingress controls from where the created bastion host should be reachable.
 	Ingress []BastionIngressPolicy `json:"ingress"`
 }
 
