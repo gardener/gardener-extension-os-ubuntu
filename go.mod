@@ -3,7 +3,7 @@ module github.com/gardener/gardener-extension-os-ubuntu
 go 1.16
 
 require (
-	github.com/gardener/gardener v1.24.1-0.20210609080620-7f7fbf24575c
+	github.com/gardener/gardener v1.25.0
 	github.com/onsi/ginkgo v1.14.2
 	github.com/onsi/gomega v1.10.5
 	github.com/spf13/cobra v1.1.1
