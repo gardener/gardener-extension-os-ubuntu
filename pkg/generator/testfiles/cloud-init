@@ -29,10 +29,9 @@ mkdir -p '/etc/systemd/system/docker.service.d'
 cat << EOF | base64 -d > '/etc/systemd/system/docker.service.d/10-docker-opts.conf'
 b3ZlcnJpZGU=
 EOF
-
 until apt-get update -qq && apt-get install --no-upgrade -qqy docker.io socat nfs-common logrotate jq policykit-1; do sleep 1; done
-systemctl daemon-reload
 ln -s /usr/bin/docker /bin/docker
 ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
-systemctl restart docker
-systemctl enable 'docker.service' && systemctl restart 'docker.service'
+systemctl daemon-reload
+systemctl enable docker && systemctl restart docker
+systemctl enable cloud-config-downloader && systemctl restart cloud-config-downloader

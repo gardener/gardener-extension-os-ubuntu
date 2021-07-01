@@ -19,9 +19,3 @@ W1NlcnZpY2VdCkV4ZWNTdGFydFByZT0vb3B0L2Jpbi9pbml0LWNvbnRhaW5lcmQ=
 EOF
 
 
-
-until apt-get update -qq && apt-get install --no-upgrade -qqy docker.io socat nfs-common logrotate jq policykit-1; do sleep 1; done
-systemctl daemon-reload
-systemctl enable 'abc.service' && systemctl restart 'abc.service'
-systemctl enable 'mtu-customizer.service' && systemctl restart 'mtu-customizer.service'
-systemctl enable 'other.service' && systemctl restart 'other.service'

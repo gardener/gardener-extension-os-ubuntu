@@ -68,6 +68,14 @@ var _ = Describe("Ubuntu OS Generator Test", func() {
 			expectedCloudInit, err := testfiles.Files.ReadFile("cloud-init-containerd-reconcile")
 			Expect(err).NotTo(HaveOccurred())
 			expected := string(expectedCloudInit)
+
+			osc.Files = []*commongen.File{
+				{
+					Path:    "/path",
+					Content: []byte("content"),
+				},
+			}
+
 			osc.Bootstrap = false
 			osc.Object.Spec.Purpose = v1alpha1.OperatingSystemConfigPurposeReconcile
 			cloudInit, _, err := g.Generate(osc)

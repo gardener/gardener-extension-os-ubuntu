@@ -55,21 +55,15 @@ mkdir -p '{{ $unit.DropIns.Path }}'
 {{- end }}
 {{- end }}
 
-until apt-get update -qq && apt-get install --no-upgrade -qqy docker.io socat nfs-common logrotate jq policykit-1; do sleep 1; done
-systemctl daemon-reload
 
 {{- if .Bootstrap }}
-{{- if isContainerDEnabled .CRI }}
-systemctl enable containerd && systemctl restart containerd
-{{- else }}
+until apt-get update -qq && apt-get install --no-upgrade -qqy docker.io socat nfs-common logrotate jq policykit-1; do sleep 1; done
 ln -s /usr/bin/docker /bin/docker
 ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
-systemctl restart docker
+systemctl daemon-reload
+{{- if isContainerDEnabled .CRI }}
+systemctl enable containerd && systemctl restart containerd
 {{- end }}
-{{- end }}
-
-{{- range $_, $unit := .Units }}
-{{- if or (ne $unit.Name "cloud-config-downloader.service") ($.Bootstrap) }}
-systemctl enable '{{ $unit.Name }}' && systemctl restart '{{ $unit.Name }}'
-{{- end }}
+systemctl enable docker && systemctl restart docker
+systemctl enable cloud-config-downloader && systemctl restart cloud-config-downloader
 {{- end }}
