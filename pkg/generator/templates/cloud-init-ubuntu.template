@@ -55,11 +55,15 @@ mkdir -p '{{ $unit.DropIns.Path }}'
 {{- end }}
 {{- end }}
 
+{{- if not .Bootstrap }}
+if grep -q 'resolvConf: /etc/resolv.conf' /var/lib/kubelet/config/kubelet; then
+  sed -i -e 's|resolvConf: /etc/resolv.conf|resolvConf: /run/systemd/resolve/resolv.conf|g' /var/lib/kubelet/config/kubelet;
+fi
+{{- end }}
 
 {{- if .Bootstrap }}
-until apt-get update -qq && apt-get install --no-upgrade -qqy docker.io socat nfs-common logrotate jq policykit-1; do sleep 1; done
+until apt-get update -qq && apt-get install --no-upgrade -qqy containerd runc docker.io socat nfs-common logrotate jq policykit-1; do sleep 1; done
 ln -s /usr/bin/docker /bin/docker
-ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
 systemctl daemon-reload
 {{- if isContainerDEnabled .CRI }}
 systemctl enable containerd && systemctl restart containerd
