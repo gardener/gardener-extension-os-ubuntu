@@ -19,9 +19,8 @@ chmod 0644 /etc/systemd/system/containerd.service.d/11-exec_config.conf
 
 
 
-until apt-get update -qq && apt-get install --no-upgrade -qqy docker.io socat nfs-common logrotate jq policykit-1; do sleep 1; done
+until apt-get update -qq && apt-get install --no-upgrade -qqy containerd runc docker.io socat nfs-common logrotate jq policykit-1; do sleep 1; done
 ln -s /usr/bin/docker /bin/docker
-ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
 systemctl daemon-reload
 systemctl enable containerd && systemctl restart containerd
 systemctl enable docker && systemctl restart docker
