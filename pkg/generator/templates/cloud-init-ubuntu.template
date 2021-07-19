@@ -21,15 +21,6 @@ EOF
 chmod 0644 /etc/cloud/cloud.cfg.d/custom-networking.cfg
 {{- end }}
 
-{{ if and (isContainerDEnabled .CRI) .Bootstrap }}
-mkdir -p /etc/systemd/system/containerd.service.d
-cat <<EOF > /etc/systemd/system/containerd.service.d/11-exec_config.conf
-[Service]
-ExecStart=
-ExecStart=/usr/bin/containerd --config=/etc/containerd/config.toml
-EOF
-chmod 0644 /etc/systemd/system/containerd.service.d/11-exec_config.conf
-{{- end }}
 
 {{ range $_, $file := .Files -}}
 mkdir -p '{{ $file.Dirname }}'
@@ -64,10 +55,25 @@ fi
 {{- if .Bootstrap }}
 until apt-get update -qq && apt-get install --no-upgrade -qqy containerd runc docker.io socat nfs-common logrotate jq policykit-1; do sleep 1; done
 ln -s /usr/bin/docker /bin/docker
-systemctl daemon-reload
+
 {{- if isContainerDEnabled .CRI }}
-systemctl enable containerd && systemctl restart containerd
+if [ ! -s /etc/containerd/config.toml ]; then
+  mkdir -p /etc/containerd/
+  containerd config default > /etc/containerd/config.toml
+  chmod 0644 /etc/containerd/config.toml
+fi
+
+mkdir -p /etc/systemd/system/containerd.service.d
+cat <<EOF > /etc/systemd/system/containerd.service.d/11-exec_config.conf
+[Service]
+ExecStart=
+ExecStart=/usr/bin/containerd --config=/etc/containerd/config.toml
+EOF
+chmod 0644 /etc/systemd/system/containerd.service.d/11-exec_config.conf
 {{- end }}
+
+systemctl daemon-reload
+systemctl enable containerd && systemctl restart containerd
 systemctl enable docker && systemctl restart docker
 systemctl enable cloud-config-downloader && systemctl restart cloud-config-downloader
 {{- end }}

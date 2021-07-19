@@ -1,7 +1,6 @@
 #!/bin/bash
 
 
-
 mkdir -p '/'
 cat << EOF | base64 -d > '/path'
 Y29udGVudA==
