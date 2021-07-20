@@ -5,7 +5,6 @@
 
 
 
-
 mkdir -p '/etc/systemd/system/abc.service.d'
 cat << EOF | base64 -d > '/etc/systemd/system/abc.service.d/10-exec-start-pre-init-config.conf'
 W1NlcnZpY2VdCkV4ZWNTdGFydFByZT0vb3B0L2Jpbi9pbml0LWNvbnRhaW5lcmQ=
