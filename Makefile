@@ -33,7 +33,8 @@ start:
 		-mod=vendor \
 		-ldflags $(LD_FLAGS) \
 		./cmd/$(EXTENSION_PREFIX)-$(NAME) \
-		--leader-election=$(LEADER_ELECTION)
+		--leader-election=$(LEADER_ELECTION) \
+		--gardener-version="v1.39.0"
 
 #################################################################
 # Rules related to binary build, Docker image build and release #
@@ -58,7 +59,7 @@ docker-images:
 
 .PHONY: install-requirements
 install-requirements:
-	@go install -mod=vendor $(REPO_ROOT)/vendor/github.com/onsi/ginkgo/ginkgo
+	@go install -mod=vendor $(REPO_ROOT)/vendor/golang.org/x/tools/cmd/goimports
 	@$(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/install-requirements.sh
 
 .PHONY: revendor
