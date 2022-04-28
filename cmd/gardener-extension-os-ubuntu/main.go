@@ -15,7 +15,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/gardener/gardener-extension-os-ubuntu/cmd/gardener-extension-os-ubuntu/app"
@@ -31,7 +30,7 @@ func main() {
 	cmd := app.NewControllerCommand(signals.SetupSignalHandler())
 
 	if err := cmd.Execute(); err != nil {
-		fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		runtimelog.Log.Error(err, "Error executing the main controller command")
 		os.Exit(1)
 	}
 }
