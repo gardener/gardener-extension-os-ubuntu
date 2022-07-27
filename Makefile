@@ -24,6 +24,13 @@ LEADER_ELECTION             := true
 IGNORE_OPERATION_ANNOTATION := true
 
 #########################################
+# Tools                                 #
+#########################################
+
+TOOLS_DIR := hack/tools
+include vendor/github.com/gardener/gardener/hack/tools.mk
+
+#########################################
 # Rules for local development scenarios #
 #########################################
 
@@ -57,11 +64,6 @@ docker-images:
 # Rules for verification, formatting, linting, testing and cleaning #
 #####################################################################
 
-.PHONY: install-requirements
-install-requirements:
-	@go install -mod=vendor $(REPO_ROOT)/vendor/golang.org/x/tools/cmd/goimports
-	@$(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/install-requirements.sh
-
 .PHONY: revendor
 revendor:
 	@GO111MODULE=on go mod vendor
@@ -81,16 +83,16 @@ check-generate:
 	@$(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/check-generate.sh $(REPO_ROOT)
 
 .PHONY: check
-check:
+check: $(GOIMPORTS) $(GOLANGCI_LINT)
 	@$(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/check.sh --golangci-lint-config=./.golangci.yaml ./cmd/... ./pkg/...
 	@$(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/check-charts.sh ./charts
 
 .PHONY: generate
-generate:
+generate: $(CONTROLLER_GEN) $(GEN_CRD_API_REFERENCE_DOCS) $(HELM) $(MOCKGEN)
 	@$(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/generate.sh ./charts/... ./cmd/... ./pkg/...
 
 .PHONY: format
-format:
+format: $(GOIMPORTS)
 	@$(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/format.sh ./cmd ./pkg
 
 .PHONY: test
@@ -109,4 +111,4 @@ test-clean:
 verify: check format test
 
 .PHONY: verify-extended
-verify-extended: install-requirements check-generate check format test-cov test-clean
+verify-extended: check-generate check format test-cov test-clean
