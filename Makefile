@@ -41,7 +41,7 @@ start:
 		-ldflags $(LD_FLAGS) \
 		./cmd/$(EXTENSION_PREFIX)-$(NAME) \
 		--leader-election=$(LEADER_ELECTION) \
-		--gardener-version="v1.39.0"
+		--gardener-version="v1.56.0"
 
 #################################################################
 # Rules related to binary build, Docker image build and release #
