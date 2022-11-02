@@ -17,6 +17,7 @@ package generator_test
 import (
 	"github.com/gardener/gardener-extension-os-ubuntu/pkg/generator"
 	"github.com/gardener/gardener-extension-os-ubuntu/pkg/generator/testfiles"
+	"github.com/go-logr/logr"
 
 	commongen "github.com/gardener/gardener/extensions/pkg/controller/operatingsystemconfig/oscommon/generator"
 	"github.com/gardener/gardener/extensions/pkg/controller/operatingsystemconfig/oscommon/generator/test"
@@ -24,6 +25,8 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
+
+var logger = logr.Discard()
 
 var _ = Describe("Ubuntu OS Generator Test", func() {
 	var (
@@ -58,7 +61,7 @@ var _ = Describe("Ubuntu OS Generator Test", func() {
 				},
 			}
 
-			cloudInit, _, err := g.Generate(osc)
+			cloudInit, _, err := g.Generate(logger, osc)
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(string(cloudInit)).To(Equal(expected))
@@ -78,7 +81,7 @@ var _ = Describe("Ubuntu OS Generator Test", func() {
 
 			osc.Bootstrap = false
 			osc.Object.Spec.Purpose = v1alpha1.OperatingSystemConfigPurposeReconcile
-			cloudInit, _, err := g.Generate(osc)
+			cloudInit, _, err := g.Generate(logger, osc)
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(string(cloudInit)).To(Equal(expected))
@@ -123,7 +126,7 @@ ExecStartPre=/opt/bin/init-containerd`)
 				},
 			}
 
-			cloudInit, _, err := g.Generate(osc)
+			cloudInit, _, err := g.Generate(logger, osc)
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(string(cloudInit)).To(Equal(expected))
