@@ -1,6 +1,6 @@
 module github.com/gardener/gardener-extension-os-ubuntu
 
-go 1.20
+go 1.21
 
 require (
 	github.com/gardener/gardener v1.77.1
