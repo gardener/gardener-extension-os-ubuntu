@@ -3,7 +3,7 @@ FROM golang:1.21.3 AS builder
 
 WORKDIR /go/src/github.com/gardener/gardener-extension-os-ubuntu
 COPY . .
-RUN make generate && make install
+RUN make install
 
 ############# gardener-extension-os-ubuntu
 FROM gcr.io/distroless/static-debian11:nonroot AS gardener-extension-os-ubuntu
