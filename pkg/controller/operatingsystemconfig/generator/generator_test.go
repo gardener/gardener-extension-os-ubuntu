@@ -22,8 +22,8 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/gardener/gardener-extension-os-ubuntu/pkg/generator"
-	"github.com/gardener/gardener-extension-os-ubuntu/pkg/generator/testfiles"
+	"github.com/gardener/gardener-extension-os-ubuntu/pkg/controller/operatingsystemconfig/generator"
+	"github.com/gardener/gardener-extension-os-ubuntu/pkg/controller/operatingsystemconfig/generator/testfiles"
 )
 
 var logger = logr.Discard()

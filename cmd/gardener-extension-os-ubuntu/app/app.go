@@ -33,7 +33,7 @@ import (
 	runtimelog "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
-	"github.com/gardener/gardener-extension-os-ubuntu/pkg/generator"
+	"github.com/gardener/gardener-extension-os-ubuntu/pkg/controller/operatingsystemconfig/generator"
 )
 
 var (
