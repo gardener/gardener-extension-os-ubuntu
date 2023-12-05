@@ -16,7 +16,7 @@ vpa:
 controllers:
   concurrentSyncs: 5
   ignoreOperationAnnotation: false
-  heartbeat: 
+  heartbeat:
     renewIntervalSeconds: 30
 
 disableControllers: []
