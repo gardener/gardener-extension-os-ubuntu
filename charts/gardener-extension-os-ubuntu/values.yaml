@@ -1,5 +1,5 @@
 image:
-  repository: eu.gcr.io/gardener-project/gardener/extensions/os-ubuntu
+  repository: europe-docker.pkg.dev/gardener-project/public/gardener/extensions/os-ubuntu
   tag: latest
   pullPolicy: IfNotPresent
 
@@ -16,7 +16,7 @@ vpa:
 controllers:
   concurrentSyncs: 5
   ignoreOperationAnnotation: false
-  heartbeat: 
+  heartbeat:
     renewIntervalSeconds: 30
 
 disableControllers: []
