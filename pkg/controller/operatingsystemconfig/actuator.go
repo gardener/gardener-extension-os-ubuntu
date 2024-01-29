@@ -119,7 +119,12 @@ chmod 0644 /etc/systemd/system/containerd.service.d/11-exec_config.conf
 systemctl daemon-reload
 systemctl enable containerd && systemctl restart containerd
 systemctl enable docker && systemctl restart docker
-systemctl enable gardener-node-init && systemctl restart gardener-node-init`
+`
+
+	for _, unit := range osc.Spec.Units {
+		script += fmt.Sprintf(`systemctl enable '%s' && systemctl restart --no-block '%s'
+`, unit.Name, unit.Name)
+	}
 
 	return script, nil
 }
