@@ -23,13 +23,15 @@ type AddOptions struct {
 	IgnoreOperationAnnotation bool
 	// UseGardenerNodeAgent specifies whether the gardener-node-agent feature is enabled.
 	UseGardenerNodeAgent bool
+	// DisableUnattendedUpgrades is the flat to disable unattended upgrades in ubuntu.
+	DisableUnattendedUpgrades bool
 }
 
 // AddToManagerWithOptions adds a controller with the given Options to the given manager.
 // The opts.Reconciler is being set with a newly instantiated actuator.
 func AddToManagerWithOptions(ctx context.Context, mgr manager.Manager, opts AddOptions) error {
 	return operatingsystemconfig.Add(mgr, operatingsystemconfig.AddArgs{
-		Actuator:          NewActuator(mgr, opts.UseGardenerNodeAgent),
+		Actuator:          NewActuator(mgr, opts.UseGardenerNodeAgent, opts.DisableUnattendedUpgrades),
 		Predicates:        operatingsystemconfig.DefaultPredicates(ctx, mgr, opts.IgnoreOperationAnnotation),
 		Types:             []string{"ubuntu", "ubuntu-pro"},
 		ControllerOptions: opts.Controller,
