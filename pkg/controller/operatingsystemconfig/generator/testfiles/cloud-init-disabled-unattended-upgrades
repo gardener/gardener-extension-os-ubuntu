@@ -1,62 +1,18 @@
 #!/bin/bash
-
-{{- define "put-content" -}}
-cat << EOF | base64 -d > '{{ .Path }}'
-{{ .Content }}
-EOF
-{{- end -}}
-
-{{- define "put-content-unencoded" -}}
-cat << EOF > '{{ .Path }}'
-{{ .Content }}
-EOF
-{{- end -}}
-
-{{ if .Bootstrap }}
 mkdir -p /etc/cloud/cloud.cfg.d/
 cat <<EOF > /etc/cloud/cloud.cfg.d/custom-networking.cfg
 network:
   config: disabled
 EOF
 chmod 0644 /etc/cloud/cloud.cfg.d/custom-networking.cfg
-{{- end }}
 
 
-{{ range $_, $file := .Files -}}
-mkdir -p '{{ $file.Dirname }}'
-{{ if $file.TransmitUnencoded -}}
-{{ template "put-content-unencoded" $file }}
-{{- else -}}
-{{ template "put-content" $file }}
-{{- end }}
-{{ if $file.Permissions -}}
-chmod '{{ $file.Permissions }}' '{{ $file.Path }}'
-{{ end }}
-{{ end }}
 
-{{ range $_, $unit := .Units -}}
-{{ if $unit.Content -}}
-{{ template "put-content" $unit }}
-{{- end }}
-{{ if $unit.DropIns }}
-mkdir -p '{{ $unit.DropIns.Path }}'
-{{ range $_, $dropIn := $unit.DropIns.Items -}}
-{{ template "put-content" $dropIn }}
-{{- end }}
-{{- end }}
-{{- end }}
 
-{{- if not .Bootstrap }}
-if grep -q 'resolvConf: /etc/resolv.conf' /var/lib/kubelet/config/kubelet; then
-  sed -i -e 's|resolvConf: /etc/resolv.conf|resolvConf: /run/systemd/resolve/resolv.conf|g' /var/lib/kubelet/config/kubelet;
-fi
-{{- end }}
 
-{{- if .Bootstrap }}
+
 until apt-get update -qq && apt-get install --no-upgrade -qqy containerd runc docker.io socat nfs-common logrotate jq policykit-1; do sleep 1; done
 ln -s /usr/bin/docker /bin/docker
-
-{{- if isContainerDEnabled .CRI }}
 if [ ! -s /etc/containerd/config.toml ]; then
   mkdir -p /etc/containerd/
   containerd config default > /etc/containerd/config.toml
@@ -70,18 +26,13 @@ ExecStart=
 ExecStart=/usr/bin/containerd --config=/etc/containerd/config.toml
 EOF
 chmod 0644 /etc/systemd/system/containerd.service.d/11-exec_config.conf
-{{- end }}
-
-{{- if .AdditionalValues.DisableUnattendedUpgrades }}
 mkdir -p /etc/apt/apt.conf.d
 cat <<EOF > /etc/apt/apt.conf.d/99-auto-upgrades.conf
 APT::Periodic::Unattended-Upgrade "0";
 EOF
 chmod 0644 /etc/apt/apt.conf.d/99-auto-upgrades.conf
-{{- end }}
 
 systemctl daemon-reload
 systemctl enable containerd && systemctl restart containerd
 systemctl enable docker && systemctl restart docker
 systemctl enable cloud-config-downloader && systemctl restart cloud-config-downloader
-{{- end }}
