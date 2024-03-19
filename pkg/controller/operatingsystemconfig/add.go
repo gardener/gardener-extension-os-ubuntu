@@ -21,7 +21,7 @@ type AddOptions struct {
 	Controller controller.Options
 	// IgnoreOperationAnnotation specifies whether to ignore the operation annotation or not.
 	IgnoreOperationAnnotation bool
-	// DisableUnattendedUpgrades is the flat to disable unattended upgrades in ubuntu.
+	// DisableUnattendedUpgrades is the flag to disable unattended upgrades in ubuntu.
 	DisableUnattendedUpgrades bool
 }
 
