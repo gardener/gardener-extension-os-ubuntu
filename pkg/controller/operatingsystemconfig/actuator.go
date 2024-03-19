@@ -19,13 +19,15 @@ import (
 )
 
 type actuator struct {
-	client client.Client
+	client                    client.Client
+	disableUnattendedUpgrades bool
 }
 
 // NewActuator creates a new Actuator that updates the status of the handled OperatingSystemConfig resources.
-func NewActuator(mgr manager.Manager) operatingsystemconfig.Actuator {
+func NewActuator(mgr manager.Manager, disableUnattendedUpgrades bool) operatingsystemconfig.Actuator {
 	return &actuator{
-		client: mgr.GetClient(),
+		client:                    mgr.GetClient(),
+		disableUnattendedUpgrades: disableUnattendedUpgrades,
 	}
 }
 
@@ -92,7 +94,7 @@ ExecStart=
 ExecStart=/usr/bin/containerd --config=/etc/containerd/config.toml
 EOF
 chmod 0644 /etc/systemd/system/containerd.service.d/11-exec_config.conf
-
+` + disableUnattendedUpgradesScript(a.disableUnattendedUpgrades) + `
 systemctl daemon-reload
 systemctl enable containerd && systemctl restart containerd
 systemctl enable docker && systemctl restart docker
@@ -135,4 +137,17 @@ ExecStartPre=` + filePathKubeletConfigureResolvConfScript + `
 	})
 
 	return extensionUnits, extensionFiles, nil
+}
+
+func disableUnattendedUpgradesScript(disableAutoUpgrades bool) string {
+	if disableAutoUpgrades {
+		return `
+mkdir -p /etc/apt/apt.conf.d
+cat <<EOF > /etc/apt/apt.conf.d/99-auto-upgrades.conf
+APT::Periodic::Unattended-Upgrade "0";
+EOF
+chmod 0644 /etc/apt/apt.conf.d/99-auto-upgrades.conf
+`
+	}
+	return ""
 }
