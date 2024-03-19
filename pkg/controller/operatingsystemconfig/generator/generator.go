@@ -14,6 +14,7 @@ import (
 
 var cmd = "/usr/bin/env bash %s"
 var cloudInitGenerator *ostemplate.CloudInitGenerator
+var cloudInitGeneratorWithDisabledUnattendedUpgrades *ostemplate.CloudInitGenerator
 
 //go:embed templates/*
 var templates embed.FS
@@ -24,14 +25,20 @@ func init() {
 
 	cloudInitTemplate, err := ostemplate.NewTemplate("cloud-init").Parse(string(cloudInitTemplateString))
 	runtime.Must(err)
-	cloudInitGenerator = ostemplate.NewCloudInitGenerator(cloudInitTemplate, ostemplate.DefaultUnitsPath, cmd, additionalValues)
+	cloudInitGenerator = ostemplate.NewCloudInitGenerator(cloudInitTemplate, ostemplate.DefaultUnitsPath, cmd, nil)
+
+	cloudInitGeneratorWithDisabledUnattendedUpgrades = ostemplate.NewCloudInitGenerator(cloudInitTemplate, ostemplate.DefaultUnitsPath, cmd,
+		func(*extensionsv1alpha1.OperatingSystemConfig) (map[string]interface{}, error) {
+			return map[string]interface{}{
+				"DisableUnattendedUpgrades": true,
+			}, nil
+		})
 }
 
 // CloudInitGenerator is the generator which will generate the cloud init yaml.
-func CloudInitGenerator() *ostemplate.CloudInitGenerator {
+func CloudInitGenerator(disableUnattendedUpgrades bool) *ostemplate.CloudInitGenerator {
+	if disableUnattendedUpgrades {
+		return cloudInitGeneratorWithDisabledUnattendedUpgrades
+	}
 	return cloudInitGenerator
-}
-
-func additionalValues(*extensionsv1alpha1.OperatingSystemConfig) (map[string]interface{}, error) {
-	return nil, nil
 }

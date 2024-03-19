@@ -22,20 +22,22 @@ import (
 )
 
 type actuator struct {
-	client               client.Client
-	useGardenerNodeAgent bool
+	client                    client.Client
+	useGardenerNodeAgent      bool
+	disableUnattendedUpgrades bool
 }
 
 // NewActuator creates a new Actuator that updates the status of the handled OperatingSystemConfig resources.
-func NewActuator(mgr manager.Manager, useGardenerNodeAgent bool) operatingsystemconfig.Actuator {
+func NewActuator(mgr manager.Manager, useGardenerNodeAgent bool, disableUnattendedUpgrades bool) operatingsystemconfig.Actuator {
 	return &actuator{
-		client:               mgr.GetClient(),
-		useGardenerNodeAgent: useGardenerNodeAgent,
+		client:                    mgr.GetClient(),
+		useGardenerNodeAgent:      useGardenerNodeAgent,
+		disableUnattendedUpgrades: disableUnattendedUpgrades,
 	}
 }
 
 func (a *actuator) Reconcile(ctx context.Context, log logr.Logger, osc *extensionsv1alpha1.OperatingSystemConfig) ([]byte, *string, []string, []string, []extensionsv1alpha1.Unit, []extensionsv1alpha1.File, error) {
-	cloudConfig, command, err := oscommonactuator.CloudConfigFromOperatingSystemConfig(ctx, log, a.client, osc, generator.CloudInitGenerator())
+	cloudConfig, command, err := oscommonactuator.CloudConfigFromOperatingSystemConfig(ctx, log, a.client, osc, generator.CloudInitGenerator(a.disableUnattendedUpgrades))
 	if err != nil {
 		return nil, nil, nil, nil, nil, nil, fmt.Errorf("could not generate cloud config: %w", err)
 	}
@@ -105,7 +107,7 @@ ExecStart=
 ExecStart=/usr/bin/containerd --config=/etc/containerd/config.toml
 EOF
 chmod 0644 /etc/systemd/system/containerd.service.d/11-exec_config.conf
-
+` + disableUnattendedUpgradesScript(a.disableUnattendedUpgrades) + `
 systemctl daemon-reload
 systemctl enable containerd && systemctl restart containerd
 systemctl enable docker && systemctl restart docker
@@ -148,4 +150,17 @@ ExecStartPre=` + filePathKubeletConfigureResolvConfScript + `
 	})
 
 	return extensionUnits, extensionFiles, nil
+}
+
+func disableUnattendedUpgradesScript(disableAutoUpgrades bool) string {
+	if disableAutoUpgrades {
+		return `
+mkdir -p /etc/apt/apt.conf.d
+cat <<EOF > /etc/apt/apt.conf.d/99-auto-upgrades.conf
+APT::Periodic::Unattended-Upgrade "0";
+EOF
+chmod 0644 /etc/apt/apt.conf.d/99-auto-upgrades.conf
+`
+	}
+	return ""
 }

@@ -37,8 +37,8 @@ var _ = Describe("Ubuntu OS Generator Test", func() {
 	})
 
 	Describe("Conformance Tests", func() {
-		g := generator.CloudInitGenerator()
-		test.DescribeTest(generator.CloudInitGenerator(), testfiles.Files)()
+		g := generator.CloudInitGenerator(false)
+		test.DescribeTest(generator.CloudInitGenerator(false), testfiles.Files)()
 
 		It("should render correctly with Containerd enabled during Bootstrap (osc.type = provision)", func() {
 			expectedCloudInit, err := testfiles.Files.ReadFile("cloud-init-containerd-provision")
@@ -111,6 +111,24 @@ ExecStartPre=/opt/bin/init-containerd`)
 					Name:    "other.service",
 					Content: content,
 				},
+				{
+					Name: "cloud-config-downloader.service",
+				},
+			}
+
+			cloudInit, _, err := g.Generate(logger, osc)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(string(cloudInit)).To(Equal(expected))
+		})
+
+		It("should render correctly with unattended upgrades are disabled (osc.type = provision)", func() {
+			g := generator.CloudInitGenerator(true)
+			expectedCloudInit, err := testfiles.Files.ReadFile("cloud-init-disabled-unattended-upgrades")
+			Expect(err).NotTo(HaveOccurred())
+			expected := string(expectedCloudInit)
+
+			osc.Units = []*commongen.Unit{
 				{
 					Name: "cloud-config-downloader.service",
 				},

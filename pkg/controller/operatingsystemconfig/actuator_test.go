@@ -47,7 +47,7 @@ var _ = Describe("Actuator", func() {
 
 	When("UseGardenerNodeAgent is false", func() {
 		BeforeEach(func() {
-			actuator = NewActuator(mgr, false)
+			actuator = NewActuator(mgr, false, false)
 		})
 
 		Describe("#Reconcile", func() {
@@ -67,11 +67,12 @@ var _ = Describe("Actuator", func() {
 
 	When("UseGardenerNodeAgent is true", func() {
 		BeforeEach(func() {
-			actuator = NewActuator(mgr, true)
+			actuator = NewActuator(mgr, true, false)
 		})
 
 		When("purpose is 'provision'", func() {
-			expectedUserData := `#!/bin/bash
+			Describe("#Reconcile", func() {
+				expectedUserData := `#!/bin/bash
 mkdir -p /etc/cloud/cloud.cfg.d/
 cat <<EOF > /etc/cloud/cloud.cfg.d/custom-networking.cfg
 network:
@@ -111,9 +112,68 @@ systemctl enable containerd && systemctl restart containerd
 systemctl enable docker && systemctl restart docker
 systemctl enable 'some-unit' && systemctl restart --no-block 'some-unit'
 `
-
-			Describe("#Reconcile", func() {
 				It("should not return an error", func() {
+					userData, command, unitNames, fileNames, extensionUnits, extensionFiles, err := actuator.Reconcile(ctx, log, osc)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(string(userData)).To(Equal(expectedUserData))
+					Expect(command).To(BeNil())
+					Expect(unitNames).To(BeEmpty())
+					Expect(fileNames).To(BeEmpty())
+					Expect(extensionUnits).To(BeEmpty())
+					Expect(extensionFiles).To(BeEmpty())
+				})
+			})
+
+			Describe("#Reconcile with disabled unattended upgrades", func() {
+				expectedUserData := `#!/bin/bash
+mkdir -p /etc/cloud/cloud.cfg.d/
+cat <<EOF > /etc/cloud/cloud.cfg.d/custom-networking.cfg
+network:
+  config: disabled
+EOF
+chmod 0644 /etc/cloud/cloud.cfg.d/custom-networking.cfg
+
+mkdir -p "/some"
+
+cat << EOF | base64 -d > "/some/file"
+YmFy
+EOF
+
+
+cat << EOF | base64 -d > "/etc/systemd/system/some-unit"
+Zm9v
+EOF
+until apt-get update -qq && apt-get install --no-upgrade -qqy containerd runc docker.io socat nfs-common logrotate jq policykit-1; do sleep 1; done
+ln -s /usr/bin/docker /bin/docker
+
+if [ ! -s /etc/containerd/config.toml ]; then
+  mkdir -p /etc/containerd/
+  containerd config default > /etc/containerd/config.toml
+  chmod 0644 /etc/containerd/config.toml
+fi
+
+mkdir -p /etc/systemd/system/containerd.service.d
+cat <<EOF > /etc/systemd/system/containerd.service.d/11-exec_config.conf
+[Service]
+ExecStart=
+ExecStart=/usr/bin/containerd --config=/etc/containerd/config.toml
+EOF
+chmod 0644 /etc/systemd/system/containerd.service.d/11-exec_config.conf
+
+mkdir -p /etc/apt/apt.conf.d
+cat <<EOF > /etc/apt/apt.conf.d/99-auto-upgrades.conf
+APT::Periodic::Unattended-Upgrade "0";
+EOF
+chmod 0644 /etc/apt/apt.conf.d/99-auto-upgrades.conf
+
+systemctl daemon-reload
+systemctl enable containerd && systemctl restart containerd
+systemctl enable docker && systemctl restart docker
+systemctl enable 'some-unit' && systemctl restart --no-block 'some-unit'
+`
+				It("should not return an error", func() {
+					actuator = NewActuator(mgr, true, true)
 					userData, command, unitNames, fileNames, extensionUnits, extensionFiles, err := actuator.Reconcile(ctx, log, osc)
 					Expect(err).NotTo(HaveOccurred())
 
