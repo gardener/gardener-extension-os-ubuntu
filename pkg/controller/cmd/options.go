@@ -9,7 +9,7 @@ var (
 
 // UbuntuOptions are command line options that can be set for ubuntu configuration.
 type UbuntuOptions struct {
-	// DisableUnattendedUpgrades is the flat to disable unattended upgrades in ubuntu.
+	// DisableUnattendedUpgrades is the flag to disable unattended upgrades in ubuntu.
 	DisableUnattendedUpgrades bool
 }
 
