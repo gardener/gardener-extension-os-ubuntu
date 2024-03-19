@@ -23,7 +23,7 @@ type AddOptions struct {
 	IgnoreOperationAnnotation bool
 	// UseGardenerNodeAgent specifies whether the gardener-node-agent feature is enabled.
 	UseGardenerNodeAgent bool
-	// DisableUnattendedUpgrades is the flat to disable unattended upgrades in ubuntu.
+	// DisableUnattendedUpgrades is the flag to disable unattended upgrades in ubuntu.
 	DisableUnattendedUpgrades bool
 }
 
