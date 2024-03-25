@@ -1,6 +1,7 @@
 module github.com/gardener/gardener-extension-os-ubuntu
 
-go 1.22.0
+go 1.22.1
+
 require (
 	github.com/gardener/gardener v1.91.0
 	github.com/go-logr/logr v1.4.1
