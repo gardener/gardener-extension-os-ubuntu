@@ -35,6 +35,7 @@ var _ = Describe("Actuator", func() {
 	BeforeEach(func() {
 		fakeClient = fakeclient.NewClientBuilder().Build()
 		mgr = test.FakeManager{Client: fakeClient}
+		actuator = NewActuator(mgr)
 
 		osc = &extensionsv1alpha1.OperatingSystemConfig{
 			Spec: extensionsv1alpha1.OperatingSystemConfigSpec{
@@ -45,33 +46,8 @@ var _ = Describe("Actuator", func() {
 		}
 	})
 
-	When("UseGardenerNodeAgent is false", func() {
-		BeforeEach(func() {
-			actuator = NewActuator(mgr, false)
-		})
-
-		Describe("#Reconcile", func() {
-			It("should not return an error", func() {
-				userData, command, unitNames, fileNames, extensionUnits, extensionFiles, err := actuator.Reconcile(ctx, log, osc)
-				Expect(err).NotTo(HaveOccurred())
-
-				Expect(userData).NotTo(BeEmpty()) // legacy logic is tested in ./generator/generator_test.go
-				Expect(command).To(BeNil())
-				Expect(unitNames).To(ConsistOf("some-unit"))
-				Expect(fileNames).To(ConsistOf("/some/file"))
-				Expect(extensionUnits).To(BeEmpty())
-				Expect(extensionFiles).To(BeEmpty())
-			})
-		})
-	})
-
-	When("UseGardenerNodeAgent is true", func() {
-		BeforeEach(func() {
-			actuator = NewActuator(mgr, true)
-		})
-
-		When("purpose is 'provision'", func() {
-			expectedUserData := `#!/bin/bash
+	When("purpose is 'provision'", func() {
+		expectedUserData := `#!/bin/bash
 mkdir -p /etc/cloud/cloud.cfg.d/
 cat <<EOF > /etc/cloud/cloud.cfg.d/custom-networking.cfg
 network:
@@ -112,57 +88,50 @@ systemctl enable docker && systemctl restart docker
 systemctl enable 'some-unit' && systemctl restart --no-block 'some-unit'
 `
 
-			Describe("#Reconcile", func() {
-				It("should not return an error", func() {
-					userData, command, unitNames, fileNames, extensionUnits, extensionFiles, err := actuator.Reconcile(ctx, log, osc)
-					Expect(err).NotTo(HaveOccurred())
+		Describe("#Reconcile", func() {
+			It("should not return an error", func() {
+				userData, extensionUnits, extensionFiles, err := actuator.Reconcile(ctx, log, osc)
+				Expect(err).NotTo(HaveOccurred())
 
-					Expect(string(userData)).To(Equal(expectedUserData))
-					Expect(command).To(BeNil())
-					Expect(unitNames).To(BeEmpty())
-					Expect(fileNames).To(BeEmpty())
-					Expect(extensionUnits).To(BeEmpty())
-					Expect(extensionFiles).To(BeEmpty())
-				})
+				Expect(string(userData)).To(Equal(expectedUserData))
+				Expect(extensionUnits).To(BeEmpty())
+				Expect(extensionFiles).To(BeEmpty())
 			})
 		})
+	})
 
-		When("purpose is 'reconcile'", func() {
-			BeforeEach(func() {
-				osc.Spec.Purpose = extensionsv1alpha1.OperatingSystemConfigPurposeReconcile
-			})
+	When("purpose is 'reconcile'", func() {
+		BeforeEach(func() {
+			osc.Spec.Purpose = extensionsv1alpha1.OperatingSystemConfigPurposeReconcile
+		})
 
-			Describe("#Reconcile", func() {
-				It("should not return an error", func() {
-					userData, command, unitNames, fileNames, extensionUnits, extensionFiles, err := actuator.Reconcile(ctx, log, osc)
-					Expect(err).NotTo(HaveOccurred())
+		Describe("#Reconcile", func() {
+			It("should not return an error", func() {
+				userData, extensionUnits, extensionFiles, err := actuator.Reconcile(ctx, log, osc)
+				Expect(err).NotTo(HaveOccurred())
 
-					Expect(userData).NotTo(BeEmpty()) // legacy logic is tested in ./generator/generator_test.go
-					Expect(command).To(BeNil())
-					Expect(unitNames).To(ConsistOf("some-unit"))
-					Expect(fileNames).To(ConsistOf("/some/file"))
-					Expect(extensionUnits).To(ConsistOf(
-						extensionsv1alpha1.Unit{
-							Name: "kubelet.service",
-							DropIns: []extensionsv1alpha1.DropIn{{
-								Name: "10-configure-resolv-conf.conf",
-								Content: `[Service]
+				Expect(userData).To(BeEmpty())
+				Expect(extensionUnits).To(ConsistOf(
+					extensionsv1alpha1.Unit{
+						Name: "kubelet.service",
+						DropIns: []extensionsv1alpha1.DropIn{{
+							Name: "10-configure-resolv-conf.conf",
+							Content: `[Service]
 ExecStartPre=/opt/gardener/bin/configure_kubelet_resolv_conf.sh
 `,
-							}},
-							FilePaths: []string{"/opt/gardener/bin/configure_kubelet_resolv_conf.sh"},
-						},
-					))
-					Expect(extensionFiles).To(ConsistOf(extensionsv1alpha1.File{
-						Path:        "/opt/gardener/bin/configure_kubelet_resolv_conf.sh",
-						Permissions: ptr.To[int32](0755),
-						Content: extensionsv1alpha1.FileContent{Inline: &extensionsv1alpha1.FileContentInline{Data: `#!/bin/bash
+						}},
+						FilePaths: []string{"/opt/gardener/bin/configure_kubelet_resolv_conf.sh"},
+					},
+				))
+				Expect(extensionFiles).To(ConsistOf(extensionsv1alpha1.File{
+					Path:        "/opt/gardener/bin/configure_kubelet_resolv_conf.sh",
+					Permissions: ptr.To[int32](0755),
+					Content: extensionsv1alpha1.FileContent{Inline: &extensionsv1alpha1.FileContentInline{Data: `#!/bin/bash
 if grep -q 'resolvConf: /etc/resolv.conf' /var/lib/kubelet/config/kubelet; then
   sed -i -e 's|resolvConf: /etc/resolv.conf|resolvConf: /run/systemd/resolve/resolv.conf|g' /var/lib/kubelet/config/kubelet;
 fi
 `}},
-					}))
-				})
+				}))
 			})
 		})
 	})

@@ -24,10 +24,7 @@ import (
 	"github.com/gardener/gardener-extension-os-ubuntu/pkg/controller/operatingsystemconfig"
 )
 
-var (
-	ctrlName = "ubuntu"
-	osTypes  = []string{"ubuntu", "ubuntu-pro"}
-)
+var ctrlName = "ubuntu"
 
 // NewControllerCommand returns a new Command with a new Generator
 func NewControllerCommand(ctx context.Context) *cobra.Command {
@@ -107,9 +104,6 @@ func NewControllerCommand(ctx context.Context) *cobra.Command {
 			heartbeatCtrlOpts.Completed().Apply(&heartbeat.DefaultAddOptions)
 
 			reconcileOpts.Completed().Apply(&operatingsystemconfig.DefaultAddOptions.IgnoreOperationAnnotation)
-			// TODO(rfranzke): Remove the UseGardenerNodeAgent fields as soon as the general options no longer support
-			//  the GardenletUsesGardenerNodeAgent field.
-			operatingsystemconfig.DefaultAddOptions.UseGardenerNodeAgent = generalOpts.Completed().GardenletUsesGardenerNodeAgent
 
 			if err := controllerSwitches.Completed().AddToManager(ctx, mgr); err != nil {
 				return fmt.Errorf("could not add controller to manager: %w", err)
