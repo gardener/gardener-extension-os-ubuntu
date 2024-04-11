@@ -21,6 +21,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
+	ubuntucmd "github.com/gardener/gardener-extension-os-ubuntu/pkg/controller/cmd"
 	"github.com/gardener/gardener-extension-os-ubuntu/pkg/controller/operatingsystemconfig"
 )
 
@@ -48,6 +49,8 @@ func NewControllerCommand(ctx context.Context) *cobra.Command {
 
 		reconcileOpts = &controllercmd.ReconcilerOptions{}
 
+		ubuntuOpts = &ubuntucmd.UbuntuOptions{}
+
 		controllerSwitches = controllercmd.NewSwitchOptions(
 			controllercmd.Switch(osccontroller.ControllerName, operatingsystemconfig.AddToManager),
 			controllercmd.Switch(heartbeat.ControllerName, heartbeat.AddToManager),
@@ -61,6 +64,7 @@ func NewControllerCommand(ctx context.Context) *cobra.Command {
 			controllercmd.PrefixOption("heartbeat-", heartbeatCtrlOpts),
 			reconcileOpts,
 			controllerSwitches,
+			ubuntuOpts,
 		)
 	)
 
@@ -104,6 +108,8 @@ func NewControllerCommand(ctx context.Context) *cobra.Command {
 			heartbeatCtrlOpts.Completed().Apply(&heartbeat.DefaultAddOptions)
 
 			reconcileOpts.Completed().Apply(&operatingsystemconfig.DefaultAddOptions.IgnoreOperationAnnotation)
+
+			operatingsystemconfig.DefaultAddOptions.DisableUnattendedUpgrades = ubuntuOpts.Completed().DisableUnattendedUpgrades
 
 			if err := controllerSwitches.Completed().AddToManager(ctx, mgr); err != nil {
 				return fmt.Errorf("could not add controller to manager: %w", err)

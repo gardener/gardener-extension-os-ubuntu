@@ -45,6 +45,7 @@ spec:
         - --ignore-operation-annotation={{ .Values.controllers.ignoreOperationAnnotation }}
         - --gardener-version={{ .Values.gardener.version }}
         - --metrics-bind-address=:{{ .Values.metrics.port }}
+        - --disable-unattended-upgrades={{ .Values.disableAutoUpgrades }}
         env:
         - name: LEADER_ELECTION_NAMESPACE
           valueFrom:
