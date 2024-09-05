@@ -1,8 +1,6 @@
 module github.com/gardener/gardener-extension-os-ubuntu
 
-go 1.22.4
-
-toolchain go1.22.5
+go 1.22.6
 
 require (
 	github.com/gardener/gardener v1.102.1
