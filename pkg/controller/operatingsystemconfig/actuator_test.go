@@ -183,7 +183,7 @@ ExecStartPre=/opt/gardener/bin/configure_kubelet_resolv_conf.sh
 				))
 				Expect(extensionFiles).To(ConsistOf(extensionsv1alpha1.File{
 					Path:        "/opt/gardener/bin/configure_kubelet_resolv_conf.sh",
-					Permissions: ptr.To[int32](0755),
+					Permissions: ptr.To[uint32](0755),
 					Content: extensionsv1alpha1.FileContent{Inline: &extensionsv1alpha1.FileContentInline{Data: `#!/bin/bash
 if grep -q 'resolvConf: /etc/resolv.conf' /var/lib/kubelet/config/kubelet; then
   sed -i -e 's|resolvConf: /etc/resolv.conf|resolvConf: /run/systemd/resolve/resolv.conf|g' /var/lib/kubelet/config/kubelet;
