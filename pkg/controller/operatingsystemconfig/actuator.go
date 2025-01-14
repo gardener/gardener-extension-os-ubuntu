@@ -24,10 +24,11 @@ type actuator struct {
 }
 
 // NewActuator creates a new Actuator that updates the status of the handled OperatingSystemConfig resources.
-func NewActuator(mgr manager.Manager, disableUnattendedUpgrades bool) operatingsystemconfig.Actuator {
+func NewActuator(mgr manager.Manager, disableUnattendedUpgrades bool, extensionConfig Config) operatingsystemconfig.Actuator {
 	return &actuator{
 		client:                    mgr.GetClient(),
 		disableUnattendedUpgrades: disableUnattendedUpgrades,
+		extensionConfig:           extensionConfig,
 	}
 }
 

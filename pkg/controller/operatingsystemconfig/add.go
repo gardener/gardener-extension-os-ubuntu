@@ -19,6 +19,8 @@ var DefaultAddOptions = AddOptions{}
 type AddOptions struct {
 	// Controller are the controller.Options.
 	Controller controller.Options
+	// ExtensionConfig contains configuration for the extension service
+	ExtensionConfig Config
 	// IgnoreOperationAnnotation specifies whether to ignore the operation annotation or not.
 	IgnoreOperationAnnotation bool
 	// DisableUnattendedUpgrades is the flag to disable unattended upgrades in ubuntu.
@@ -29,7 +31,7 @@ type AddOptions struct {
 // The opts.Reconciler is being set with a newly instantiated actuator.
 func AddToManagerWithOptions(ctx context.Context, mgr manager.Manager, opts AddOptions) error {
 	return operatingsystemconfig.Add(mgr, operatingsystemconfig.AddArgs{
-		Actuator:          NewActuator(mgr, opts.DisableUnattendedUpgrades),
+		Actuator:          NewActuator(mgr, opts.DisableUnattendedUpgrades, opts.ExtensionConfig),
 		Predicates:        operatingsystemconfig.DefaultPredicates(ctx, mgr, opts.IgnoreOperationAnnotation),
 		Types:             []string{"ubuntu", "ubuntu-pro"},
 		ControllerOptions: opts.Controller,
