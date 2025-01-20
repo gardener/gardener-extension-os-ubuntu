@@ -21,13 +21,6 @@ systemd_timesyncd() {
   install_systemd_timesyncd
 }
 
-package_installed() {
-  if ! dpkg-query -W -f='${Status}' "$1" 2>/dev/null | grep -c "ok installed"; then
-    return 1
-  fi
-  return 0
-}
-
 install_systemd_timesyncd() {
   echo "Installing systemd-timesyncd client..."
   if package_installed systemd-timesyncd; then
@@ -37,6 +30,13 @@ install_systemd_timesyncd() {
   echo "apt update && apt install -y systemd-timesyncd"
   apt update && apt install -y systemd-timesyncd
   echo "systemd-timesyncd installed successfully!"
+}
+
+package_installed() {
+  if ! dpkg-query -W -f='${Status}' "$1" 2>/dev/null | grep -c "ok installed"; then
+    return 1
+  fi
+  return 0
 }
 
 if [ -z "$1" ]; then
