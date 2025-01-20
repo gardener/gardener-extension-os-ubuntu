@@ -48,7 +48,7 @@ func (u *UbuntuOptions) AddFlags(fs *pflag.FlagSet) {
 
 // Complete implements cmd.Option.
 func (u *UbuntuOptions) Complete() error {
-	if len(u.configFile) == 0 {
+	if u.configFile == "" {
 		return errors.New("missing config file")
 	}
 	data, err := os.ReadFile(u.configFile)
