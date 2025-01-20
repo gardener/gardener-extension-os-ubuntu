@@ -18,8 +18,9 @@ import (
 var (
 	// DisableUnattendedUpgrades is the name of the command line flag to disable unattended upgrades in ubuntu.
 	DisableUnattendedUpgrades = "disable-unattended-upgrades"
-	//TODO: Docstring
-	configDecoder runtime.Decoder
+	configDecoder             runtime.Decoder
+	// Config is the parsed configFile
+	Config *configv1alpha1.ExtensionConfig
 )
 
 func init() {
@@ -37,8 +38,6 @@ type UbuntuOptions struct {
 	DisableUnattendedUpgrades bool
 	// configFile path of the extension config
 	configFile string
-	// Config is the parsed configFile
-	Config *configv1alpha1.ExtensionConfig
 }
 
 // AddFlags implements cmd.Option.
@@ -56,8 +55,8 @@ func (u *UbuntuOptions) Complete() error {
 	if err != nil {
 		return fmt.Errorf("error reading config file: %w", err)
 	}
-	u.Config = &configv1alpha1.ExtensionConfig{}
-	if err = runtime.DecodeInto(configDecoder, data, u.Config); err != nil {
+	Config = &configv1alpha1.ExtensionConfig{}
+	if err = runtime.DecodeInto(configDecoder, data, Config); err != nil {
 		return fmt.Errorf("error decoding config: %w", err)
 	}
 
@@ -70,13 +69,13 @@ func (u *UbuntuOptions) Completed() *UbuntuOptions {
 }
 
 func (u *UbuntuOptions) Validate() error {
-	if errs := validation.ValidateExtensionConfig(u.Config); len(errs) > 0 {
+	if errs := validation.ValidateExtensionConfig(Config); len(errs) > 0 {
 		return fmt.Errorf("invalid extension config: %w", errs.ToAggregate())
 	}
 	return nil
 }
 
 func (u *UbuntuOptions) Apply(config *operatingsystemconfig.Config, disableUnattendedUpgrades *bool) {
-	config.ExtensionConfig = u.Config
+	config.ExtensionConfig = Config
 	*disableUnattendedUpgrades = u.DisableUnattendedUpgrades
 }
