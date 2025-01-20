@@ -9,7 +9,7 @@ install_ntp() {
     return
   fi
   echo "apt update && apt install -y ntp"
-  apt update && DEBIAN_FRONTEND=noninteractive apt install -y ntp
+  apt update && DEBIAN_FRONTEND=noninteractive apt install -o Dpkg::Options::="--force-confold" -y ntp
   echo "ntp installed successfully!"
 }
 
