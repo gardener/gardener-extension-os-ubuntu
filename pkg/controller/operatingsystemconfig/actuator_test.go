@@ -6,6 +6,7 @@ package operatingsystemconfig_test
 
 import (
 	"context"
+	_ "embed"
 
 	"github.com/gardener/gardener/extensions/pkg/controller/operatingsystemconfig"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
@@ -18,8 +19,12 @@ import (
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
+	"github.com/gardener/gardener-extension-os-ubuntu/pkg/controller/config/v1alpha1"
 	. "github.com/gardener/gardener-extension-os-ubuntu/pkg/controller/operatingsystemconfig"
 )
+
+//go:embed scripts/installNTP.sh
+var ntpInstallScript string
 
 var _ = Describe("Actuator", func() {
 	var (
@@ -35,7 +40,12 @@ var _ = Describe("Actuator", func() {
 	BeforeEach(func() {
 		fakeClient = fakeclient.NewClientBuilder().Build()
 		mgr = test.FakeManager{Client: fakeClient}
-		actuator = NewActuator(mgr, false)
+		extensionConfig := Config{ExtensionConfig: &v1alpha1.ExtensionConfig{
+			NTP: &v1alpha1.NTPConfig{
+				Daemon: v1alpha1.SystemdTimesyncd,
+			},
+		}}
+		actuator = NewActuator(mgr, false, extensionConfig)
 
 		osc = &extensionsv1alpha1.OperatingSystemConfig{
 			Spec: extensionsv1alpha1.OperatingSystemConfigSpec{
@@ -147,7 +157,8 @@ systemctl enable docker && systemctl restart docker
 systemctl enable 'some-unit' && systemctl restart --no-block 'some-unit'
 `
 			It("should not return an error", func() {
-				actuator = NewActuator(mgr, true)
+				extensionConfig := Config{}
+				actuator = NewActuator(mgr, true, extensionConfig)
 				userData, extensionUnits, extensionFiles, err := actuator.Reconcile(ctx, log, osc)
 				Expect(err).NotTo(HaveOccurred())
 
@@ -180,8 +191,23 @@ ExecStartPre=/opt/gardener/bin/configure_kubelet_resolv_conf.sh
 						}},
 						FilePaths: []string{"/opt/gardener/bin/configure_kubelet_resolv_conf.sh"},
 					},
-				))
-				Expect(extensionFiles).To(ConsistOf(extensionsv1alpha1.File{
+					extensionsv1alpha1.Unit{
+						Name:    "install-ntp-client.service",
+						Command: ptr.To(extensionsv1alpha1.CommandRestart),
+						Content: ptr.To(`[Unit]
+Description=Oneshot service to install requested ntp client
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash /opt/bin/install-ntp.sh systemd-timesyncd
+
+[Install]
+WantedBy=multi-user.target
+`),
+					},
+				),
+				)
+				Expect(extensionFiles).To(ContainElement(extensionsv1alpha1.File{
 					Path:        "/opt/gardener/bin/configure_kubelet_resolv_conf.sh",
 					Permissions: ptr.To[uint32](0755),
 					Content: extensionsv1alpha1.FileContent{Inline: &extensionsv1alpha1.FileContentInline{Data: `#!/bin/bash
@@ -190,6 +216,59 @@ if grep -q 'resolvConf: /etc/resolv.conf' /var/lib/kubelet/config/kubelet; then
 fi
 `}},
 				}))
+				Expect(extensionFiles).To(ContainElement(extensionsv1alpha1.File{
+					Path:        "/opt/bin/install-ntp.sh",
+					Content:     extensionsv1alpha1.FileContent{Inline: &extensionsv1alpha1.FileContentInline{Data: ntpInstallScript}},
+					Permissions: ptr.To[uint32](0744),
+				}))
+			})
+			It("should not return an error with ntp instead of systemd-timesyncd", func() {
+				extensionConfig := Config{
+					ExtensionConfig: &v1alpha1.ExtensionConfig{
+						NTP: &v1alpha1.NTPConfig{
+							Daemon: v1alpha1.NTPD,
+							NTPD:   &v1alpha1.NTPDConfig{Servers: []string{"127.0.0.1"}},
+						},
+					},
+				}
+				actuator = NewActuator(mgr, true, extensionConfig)
+				userData, extensionUnits, extensionFiles, err := actuator.Reconcile(ctx, log, osc)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(userData).To(BeEmpty())
+
+				Expect(extensionFiles).To(ContainElement(extensionsv1alpha1.File{
+					Path:        "/opt/bin/install-ntp.sh",
+					Content:     extensionsv1alpha1.FileContent{Inline: &extensionsv1alpha1.FileContentInline{Data: ntpInstallScript}},
+					Permissions: ptr.To[uint32](0744),
+				}))
+
+				Expect(extensionUnits).To(ConsistOf(
+					extensionsv1alpha1.Unit{
+						Name: "kubelet.service",
+						DropIns: []extensionsv1alpha1.DropIn{{
+							Name: "10-configure-resolv-conf.conf",
+							Content: `[Service]
+ExecStartPre=/opt/gardener/bin/configure_kubelet_resolv_conf.sh
+`,
+						}},
+						FilePaths: []string{"/opt/gardener/bin/configure_kubelet_resolv_conf.sh"},
+					},
+					extensionsv1alpha1.Unit{
+						Name:    "install-ntp-client.service",
+						Command: ptr.To(extensionsv1alpha1.CommandRestart),
+						Content: ptr.To(`[Unit]
+Description=Oneshot service to install requested ntp client
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash /opt/bin/install-ntp.sh ntpd
+
+[Install]
+WantedBy=multi-user.target
+`),
+					},
+				),
+				)
 			})
 		})
 	})

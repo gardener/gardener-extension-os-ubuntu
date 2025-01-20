@@ -1,17 +1,15 @@
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
-  name: gardener-extension-os-ubuntu
+  name: {{ include "ubuntu.name" . }}
   namespace: {{ .Release.Namespace }}
   labels:
-    app.kubernetes.io/name: gardener-extension-os-ubuntu
-    app.kubernetes.io/instance: {{ .Release.Name }}
+    {{- include "ubuntu.labels" . | nindent 4 }}
 spec:
   maxUnavailable: 1
   selector:
     matchLabels:
-      app.kubernetes.io/name: gardener-extension-os-ubuntu
-      app.kubernetes.io/instance: {{ .Release.Name }}
+      {{- include "ubuntu.selectorLabels" . | nindent 6}}
 {{- if semverCompare ">= 1.26-0" .Capabilities.KubeVersion.Version }}
   unhealthyPodEvictionPolicy: AlwaysAllow
 {{- end }}

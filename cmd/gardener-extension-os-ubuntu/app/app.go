@@ -82,6 +82,10 @@ func NewControllerCommand(ctx context.Context) *cobra.Command {
 				return err
 			}
 
+			if err := ubuntuOpts.Validate(); err != nil {
+				return err
+			}
+
 			// TODO: Make these flags configurable via command line parameters or component config file.
 			util.ApplyClientConnectionConfigurationToRESTConfig(&componentbaseconfig.ClientConnectionConfiguration{
 				QPS:   100.0,
@@ -111,7 +115,7 @@ func NewControllerCommand(ctx context.Context) *cobra.Command {
 
 			reconcileOpts.Completed().Apply(&operatingsystemconfig.DefaultAddOptions.IgnoreOperationAnnotation, ptr.To(extensionsv1alpha1.ExtensionClassShoot))
 
-			operatingsystemconfig.DefaultAddOptions.DisableUnattendedUpgrades = ubuntuOpts.Completed().DisableUnattendedUpgrades
+			ubuntuOpts.Completed().Apply(&operatingsystemconfig.DefaultAddOptions.ExtensionConfig, &operatingsystemconfig.DefaultAddOptions.DisableUnattendedUpgrades)
 
 			if err := controllerSwitches.Completed().AddToManager(ctx, mgr); err != nil {
 				return fmt.Errorf("could not add controller to manager: %w", err)
