@@ -17,3 +17,9 @@ func SetDefaults_NTPConfig(obj *NTPConfig) {
 		obj.Daemon = SystemdTimesyncd
 	}
 }
+
+func SetDefaults_NTPDConfig(obj *NTPDConfig) {
+	if obj.Servers == nil {
+		obj.Servers = make([]string, 0)
+	}
+}
