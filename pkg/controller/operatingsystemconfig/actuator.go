@@ -203,7 +203,7 @@ chmod 0644 /etc/apt/apt.conf.d/99-auto-upgrades.conf
 func (a *actuator) configureNTPDaemon(extensionUnits []extensionsv1alpha1.Unit, extensionFiles []extensionsv1alpha1.File) ([]extensionsv1alpha1.Unit, []extensionsv1alpha1.File, error) {
 	filePathNTPScript := filepath.Join(string(filepath.Separator), "opt", "bin", "install-ntp.sh")
 	extensionFiles = append(extensionFiles, extensionsv1alpha1.File{
-		Path:        filepath.Join(filePathNTPScript),
+		Path:        filePathNTPScript,
 		Content:     extensionsv1alpha1.FileContent{Inline: &extensionsv1alpha1.FileContentInline{Data: ntpInstallScript}},
 		Permissions: ptr.To[uint32](0744),
 	})
