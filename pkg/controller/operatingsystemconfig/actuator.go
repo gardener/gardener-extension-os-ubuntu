@@ -105,6 +105,8 @@ systemctl enable docker && systemctl restart docker
 `, unit.Name, unit.Name)
 	}
 
+	script = operatingsystemconfig.WrapProvisionOSCIntoOneshotScript(script)
+
 	return script, nil
 }
 
