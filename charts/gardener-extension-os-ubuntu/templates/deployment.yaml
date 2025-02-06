@@ -55,6 +55,7 @@ spec:
         resources:
 {{ toYaml .Values.resources | nindent 10 }}
 {{- end }}
+{{- if .Values.config }}
         volumeMounts:
           - name: config
             mountPath: /config
@@ -64,4 +65,4 @@ spec:
           secret:
             secretName: {{ include "ubuntu.name" . }}-config
             defaultMode: 420
-            optional: true
+{{- end }}

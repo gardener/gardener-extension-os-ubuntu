@@ -4,14 +4,15 @@ import (
 	"fmt"
 	"os"
 
-	configv1alpha1 "github.com/gardener/gardener-extension-os-ubuntu/pkg/controller/config/v1alpha1"
-	"github.com/gardener/gardener-extension-os-ubuntu/pkg/controller/config/v1alpha1/validation"
-	"github.com/gardener/gardener-extension-os-ubuntu/pkg/controller/operatingsystemconfig"
 	"github.com/spf13/pflag"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/utils/ptr"
+
+	configv1alpha1 "github.com/gardener/gardener-extension-os-ubuntu/pkg/controller/config/v1alpha1"
+	"github.com/gardener/gardener-extension-os-ubuntu/pkg/controller/config/v1alpha1/validation"
+	"github.com/gardener/gardener-extension-os-ubuntu/pkg/controller/operatingsystemconfig"
 )
 
 var (
