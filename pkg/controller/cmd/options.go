@@ -4,14 +4,14 @@ import (
 	"fmt"
 	"os"
 
+	configv1alpha1 "github.com/gardener/gardener-extension-os-ubuntu/pkg/controller/config/v1alpha1"
+	"github.com/gardener/gardener-extension-os-ubuntu/pkg/controller/config/v1alpha1/validation"
+	"github.com/gardener/gardener-extension-os-ubuntu/pkg/controller/operatingsystemconfig"
 	"github.com/spf13/pflag"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-
-	configv1alpha1 "github.com/gardener/gardener-extension-os-ubuntu/pkg/controller/config/v1alpha1"
-	"github.com/gardener/gardener-extension-os-ubuntu/pkg/controller/config/v1alpha1/validation"
-	"github.com/gardener/gardener-extension-os-ubuntu/pkg/controller/operatingsystemconfig"
+	"k8s.io/utils/ptr"
 )
 
 var (
@@ -60,6 +60,11 @@ func (u *UbuntuOptions) Complete() error {
 		configv1alpha1.SetObjectDefaults_ExtensionConfig(extensionConfig)
 	}
 
+	// If disable-unattended-upgrades is true then set DisableUnattendedUpgrades in ExtensionConfig to true
+	if u.DisableUnattendedUpgrades {
+		extensionConfig.DisableUnattendedUpgrades = ptr.To(u.DisableUnattendedUpgrades)
+	}
+
 	return nil
 }
 
@@ -75,7 +80,6 @@ func (u *UbuntuOptions) Validate() error {
 	return nil
 }
 
-func (u *UbuntuOptions) Apply(config *operatingsystemconfig.Config, disableUnattendedUpgrades *bool) {
+func (u *UbuntuOptions) Apply(config *operatingsystemconfig.Config) {
 	config.ExtensionConfig = extensionConfig
-	*disableUnattendedUpgrades = u.DisableUnattendedUpgrades
 }

@@ -22,6 +22,11 @@ func (in *ExtensionConfig) DeepCopyInto(out *ExtensionConfig) {
 		*out = new(NTPConfig)
 		(*in).DeepCopyInto(*out)
 	}
+	if in.DisableUnattendedUpgrades != nil {
+		in, out := &in.DisableUnattendedUpgrades, &out.DisableUnattendedUpgrades
+		*out = new(bool)
+		**out = **in
+	}
 	return
 }
 

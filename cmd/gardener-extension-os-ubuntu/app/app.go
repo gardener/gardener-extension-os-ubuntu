@@ -115,7 +115,7 @@ func NewControllerCommand(ctx context.Context) *cobra.Command {
 
 			reconcileOpts.Completed().Apply(&operatingsystemconfig.DefaultAddOptions.IgnoreOperationAnnotation, ptr.To(extensionsv1alpha1.ExtensionClassShoot))
 
-			ubuntuOpts.Completed().Apply(&operatingsystemconfig.DefaultAddOptions.ExtensionConfig, &operatingsystemconfig.DefaultAddOptions.DisableUnattendedUpgrades)
+			ubuntuOpts.Completed().Apply(&operatingsystemconfig.DefaultAddOptions.ExtensionConfig)
 
 			if err := controllerSwitches.Completed().AddToManager(ctx, mgr); err != nil {
 				return fmt.Errorf("could not add controller to manager: %w", err)
