@@ -28,7 +28,7 @@ install_systemd_timesyncd() {
     return
   fi
   echo "apt update && apt install -y systemd-timesyncd"
-  apt update && apt install -y systemd-timesyncd
+  apt update && DEBIAN_FRONTEND=noninteractive apt install -y systemd-timesyncd
   echo "systemd-timesyncd installed successfully!"
 }
 
