@@ -45,6 +45,18 @@ NTPConfig
 <p>NTP to configure either systemd-timesyncd or ntpd</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>disableUnattendedUpgrades</code></br>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>DisableUnattendedUpgrades to disable unattended upgrades in ubuntu</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="config.ubuntu.os.extensions.gardener.cloud/v1alpha1.NTPConfig">NTPConfig

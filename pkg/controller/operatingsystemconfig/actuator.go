@@ -31,9 +31,8 @@ var ntpInstallScript string
 var ntpConfigTemplate *template.Template
 
 type actuator struct {
-	client                    client.Client
-	disableUnattendedUpgrades bool
-	extensionConfig           Config
+	client          client.Client
+	extensionConfig Config
 }
 
 // Config contains configuration for the extension service.
@@ -51,11 +50,10 @@ func init() {
 }
 
 // NewActuator creates a new Actuator that updates the status of the handled OperatingSystemConfig resources.
-func NewActuator(mgr manager.Manager, disableUnattendedUpgrades bool, extensionConfig Config) operatingsystemconfig.Actuator {
+func NewActuator(mgr manager.Manager, extensionConfig Config) operatingsystemconfig.Actuator {
 	return &actuator{
-		client:                    mgr.GetClient(),
-		disableUnattendedUpgrades: disableUnattendedUpgrades,
-		extensionConfig:           extensionConfig,
+		client:          mgr.GetClient(),
+		extensionConfig: extensionConfig,
 	}
 }
 
@@ -122,7 +120,7 @@ ExecStart=
 ExecStart=/usr/bin/containerd --config=/etc/containerd/config.toml
 EOF
 chmod 0644 /etc/systemd/system/containerd.service.d/11-exec_config.conf
-` + disableUnattendedUpgradesScript(a.disableUnattendedUpgrades) + `
+` + disableUnattendedUpgradesScript(a.extensionConfig.DisableUnattendedUpgrades) + `
 systemctl daemon-reload
 systemctl enable containerd && systemctl restart containerd
 systemctl enable docker && systemctl restart docker
@@ -186,8 +184,8 @@ ExecStartPre=` + filePathKubeletConfigureResolvConfScript + `
 	return extensionUnits, extensionFiles, nil
 }
 
-func disableUnattendedUpgradesScript(disableAutoUpgrades bool) string {
-	if disableAutoUpgrades {
+func disableUnattendedUpgradesScript(disableAutoUpgrades *bool) string {
+	if disableAutoUpgrades != nil && *disableAutoUpgrades {
 		return `
 mkdir -p /etc/apt/apt.conf.d
 cat <<EOF > /etc/apt/apt.conf.d/99-auto-upgrades.conf

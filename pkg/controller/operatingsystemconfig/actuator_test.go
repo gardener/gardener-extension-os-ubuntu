@@ -41,11 +41,12 @@ var _ = Describe("Actuator", func() {
 		fakeClient = fakeclient.NewClientBuilder().Build()
 		mgr = test.FakeManager{Client: fakeClient}
 		extensionConfig := Config{ExtensionConfig: &v1alpha1.ExtensionConfig{
+			DisableUnattendedUpgrades: ptr.To(false),
 			NTP: &v1alpha1.NTPConfig{
 				Daemon: v1alpha1.SystemdTimesyncd,
 			},
 		}}
-		actuator = NewActuator(mgr, false, extensionConfig)
+		actuator = NewActuator(mgr, extensionConfig)
 
 		osc = &extensionsv1alpha1.OperatingSystemConfig{
 			Spec: extensionsv1alpha1.OperatingSystemConfigSpec{
@@ -175,8 +176,8 @@ mkdir -p /var/lib/osc
 touch /var/lib/osc/provision-osc-applied
 `
 			It("should not return an error", func() {
-				extensionConfig := Config{}
-				actuator = NewActuator(mgr, true, extensionConfig)
+				extensionConfig := Config{ExtensionConfig: &v1alpha1.ExtensionConfig{DisableUnattendedUpgrades: ptr.To(true)}}
+				actuator = NewActuator(mgr, extensionConfig)
 				userData, extensionUnits, extensionFiles, err := actuator.Reconcile(ctx, log, osc)
 				Expect(err).NotTo(HaveOccurred())
 
@@ -243,13 +244,14 @@ fi
 			It("should not return an error with ntp instead of systemd-timesyncd", func() {
 				extensionConfig := Config{
 					ExtensionConfig: &v1alpha1.ExtensionConfig{
+						DisableUnattendedUpgrades: ptr.To(true),
 						NTP: &v1alpha1.NTPConfig{
 							Daemon: v1alpha1.NTPD,
 							NTPD:   &v1alpha1.NTPDConfig{Servers: []string{"127.0.0.1"}},
 						},
 					},
 				}
-				actuator = NewActuator(mgr, true, extensionConfig)
+				actuator = NewActuator(mgr, extensionConfig)
 				userData, extensionUnits, extensionFiles, err := actuator.Reconcile(ctx, log, osc)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(userData).To(BeEmpty())

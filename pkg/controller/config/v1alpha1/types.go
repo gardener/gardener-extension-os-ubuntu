@@ -19,6 +19,9 @@ type ExtensionConfig struct {
 	// NTP to configure either systemd-timesyncd or ntpd
 	// +optional
 	NTP *NTPConfig `json:"ntp,omitempty"`
+	// DisableUnattendedUpgrades to disable unattended upgrades in ubuntu
+	// +optional
+	DisableUnattendedUpgrades *bool `json:"disableUnattendedUpgrades,omitempty"`
 }
 
 // NTPConfig General NTP Config for either systemd-timesyncd or ntpd
