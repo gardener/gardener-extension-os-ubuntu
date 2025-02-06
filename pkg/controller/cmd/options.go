@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
 	"os"
 
@@ -48,16 +47,17 @@ func (u *UbuntuOptions) AddFlags(fs *pflag.FlagSet) {
 
 // Complete implements cmd.Option.
 func (u *UbuntuOptions) Complete() error {
-	if u.configFile == "" {
-		return errors.New("missing config file")
-	}
-	data, err := os.ReadFile(u.configFile)
-	if err != nil {
-		return fmt.Errorf("error reading config file: %w", err)
-	}
 	extensionConfig = &configv1alpha1.ExtensionConfig{}
-	if err = runtime.DecodeInto(configDecoder, data, extensionConfig); err != nil {
-		return fmt.Errorf("error decoding config: %w", err)
+	if u.configFile != "" {
+		data, err := os.ReadFile(u.configFile)
+		if err != nil {
+			return fmt.Errorf("error reading config file: %w", err)
+		}
+		if err = runtime.DecodeInto(configDecoder, data, extensionConfig); err != nil {
+			return fmt.Errorf("error decoding config: %w", err)
+		}
+	} else {
+		configv1alpha1.SetObjectDefaults_ExtensionConfig(extensionConfig)
 	}
 
 	return nil
