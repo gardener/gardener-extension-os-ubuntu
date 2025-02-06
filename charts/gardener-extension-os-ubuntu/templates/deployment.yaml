@@ -39,7 +39,9 @@ spec:
         - --disable-controllers={{ .Values.disableControllers | join "," }}
         - --heartbeat-namespace={{ .Release.Namespace }} 
         - --heartbeat-renew-interval-seconds={{ .Values.controllers.heartbeat.renewIntervalSeconds }}
+        {{- if .Values.config }}
         - --config=/config/config.yaml
+        {{- end }}
         - --ignore-operation-annotation={{ .Values.controllers.ignoreOperationAnnotation }}
         - --gardener-version={{ .Values.gardener.version }}
         - --metrics-bind-address=:{{ .Values.metrics.port }}
@@ -62,3 +64,4 @@ spec:
           secret:
             secretName: {{ include "ubuntu.name" . }}-config
             defaultMode: 420
+            optional: true
