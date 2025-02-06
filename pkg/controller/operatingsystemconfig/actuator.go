@@ -199,7 +199,7 @@ chmod 0644 /etc/apt/apt.conf.d/99-auto-upgrades.conf
 
 // configureNTPDaemon configures the VM either with systemd-timesyncd or ntpd as the time syncing client
 func (a *actuator) configureNTPDaemon(extensionUnits []extensionsv1alpha1.Unit, extensionFiles []extensionsv1alpha1.File) ([]extensionsv1alpha1.Unit, []extensionsv1alpha1.File, error) {
-	filePathNTPScript := filepath.Join(string(filepath.Separator), "opt", "bin", "install-ntp.sh")
+	filePathNTPScript := filepath.Join(string(filepath.Separator), "opt", "gardener", "bin", "install-ntp.sh")
 	extensionFiles = append(extensionFiles, extensionsv1alpha1.File{
 		Path:        filePathNTPScript,
 		Content:     extensionsv1alpha1.FileContent{Inline: &extensionsv1alpha1.FileContentInline{Data: ntpInstallScript}},

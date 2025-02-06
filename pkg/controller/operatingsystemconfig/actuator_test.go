@@ -218,7 +218,7 @@ Description=Oneshot service to install requested ntp client
 
 [Service]
 Type=oneshot
-ExecStart=/bin/bash /opt/bin/install-ntp.sh systemd-timesyncd
+ExecStart=/bin/bash /opt/gardener/bin/install-ntp.sh systemd-timesyncd
 
 [Install]
 WantedBy=multi-user.target
@@ -236,7 +236,7 @@ fi
 `}},
 				}))
 				Expect(extensionFiles).To(ContainElement(extensionsv1alpha1.File{
-					Path:        "/opt/bin/install-ntp.sh",
+					Path:        "/opt/gardener/bin/install-ntp.sh",
 					Content:     extensionsv1alpha1.FileContent{Inline: &extensionsv1alpha1.FileContentInline{Data: ntpInstallScript}},
 					Permissions: ptr.To[uint32](0744),
 				}))
@@ -257,7 +257,7 @@ fi
 				Expect(userData).To(BeEmpty())
 
 				Expect(extensionFiles).To(ContainElement(extensionsv1alpha1.File{
-					Path:        "/opt/bin/install-ntp.sh",
+					Path:        "/opt/gardener/bin/install-ntp.sh",
 					Content:     extensionsv1alpha1.FileContent{Inline: &extensionsv1alpha1.FileContentInline{Data: ntpInstallScript}},
 					Permissions: ptr.To[uint32](0744),
 				}))
@@ -281,7 +281,7 @@ Description=Oneshot service to install requested ntp client
 
 [Service]
 Type=oneshot
-ExecStart=/bin/bash /opt/bin/install-ntp.sh ntpd
+ExecStart=/bin/bash /opt/gardener/bin/install-ntp.sh ntpd
 
 [Install]
 WantedBy=multi-user.target
