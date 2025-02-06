@@ -33,6 +33,24 @@ var _ = Describe("ExtensionConfig validation", func() {
 		Expect(errs[0].Field).To(Equal("daemon"))
 	})
 
+	It("should succeed with valid NTPd config", func() {
+		config.NTP.Daemon = configv1alpha1.NTPD
+		config.NTP.NTPD = &configv1alpha1.NTPDConfig{}
+		config.NTP.NTPD.Servers = []string{"ntp.ubuntu.com"}
+		errs := ValidateExtensionConfig(config)
+		Expect(errs).To(BeEmpty())
+	})
+
+	It("should fail with invalid NTPd config (no ntp servers provided)", func() {
+		config.NTP.Daemon = configv1alpha1.NTPD
+		config.NTP.NTPD = &configv1alpha1.NTPDConfig{}
+		config.NTP.NTPD.Servers = []string{}
+		errs := ValidateExtensionConfig(config)
+		Expect(errs).To(HaveLen(1))
+		Expect(errs[0].Type).To(Equal(field.ErrorTypeRequired))
+		Expect(errs[0].Field).To(Equal("ntpd.servers"))
+	})
+
 	It("should fail with daemon systemd-timesyncd and ntpd config set", func() {
 		config.NTP.Daemon = configv1alpha1.SystemdTimesyncd
 		config.NTP.NTPD = &configv1alpha1.NTPDConfig{Servers: []string{"foo.bar"}}
