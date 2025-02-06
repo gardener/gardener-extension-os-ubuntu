@@ -18,12 +18,13 @@ var (
 	// DisableUnattendedUpgrades is the name of the command line flag to disable unattended upgrades in ubuntu.
 	DisableUnattendedUpgrades = "disable-unattended-upgrades"
 	configDecoder             runtime.Decoder
+	configScheme              *runtime.Scheme
 	// config is the parsed configFile
 	extensionConfig *configv1alpha1.ExtensionConfig
 )
 
 func init() {
-	configScheme := runtime.NewScheme()
+	configScheme = runtime.NewScheme()
 	schemeBuilder := runtime.NewSchemeBuilder(
 		configv1alpha1.AddToScheme,
 	)
@@ -57,7 +58,7 @@ func (u *UbuntuOptions) Complete() error {
 			return fmt.Errorf("error decoding config: %w", err)
 		}
 	} else {
-		configv1alpha1.SetObjectDefaults_ExtensionConfig(extensionConfig)
+		configScheme.Default(extensionConfig)
 	}
 
 	// If disable-unattended-upgrades is true then set DisableUnattendedUpgrades in ExtensionConfig to true
