@@ -13,6 +13,7 @@ require (
 	github.com/spf13/pflag v1.0.5
 	golang.org/x/tools v0.29.0
 	k8s.io/api v0.31.5
+	k8s.io/apimachinery v0.31.5
 	k8s.io/component-base v0.31.5
 	k8s.io/utils v0.0.0-20241210054802-24370beab758
 	sigs.k8s.io/controller-runtime v0.19.4
@@ -115,7 +116,6 @@ require (
 	istio.io/api v1.24.2 // indirect
 	istio.io/client-go v1.24.1 // indirect
 	k8s.io/apiextensions-apiserver v0.31.5 // indirect
-	k8s.io/apimachinery v0.31.5 // indirect
 	k8s.io/autoscaler/vertical-pod-autoscaler v1.2.2 // indirect
 	k8s.io/client-go v0.31.5 // indirect
 	k8s.io/code-generator v0.31.5 // indirect
