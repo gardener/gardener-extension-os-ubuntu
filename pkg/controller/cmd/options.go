@@ -8,7 +8,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/utils/ptr"
 
 	configv1alpha1 "github.com/gardener/gardener-extension-os-ubuntu/pkg/controller/config/v1alpha1"
 	"github.com/gardener/gardener-extension-os-ubuntu/pkg/controller/config/v1alpha1/validation"
@@ -16,10 +15,8 @@ import (
 )
 
 var (
-	// DisableUnattendedUpgrades is the name of the command line flag to disable unattended upgrades in ubuntu.
-	DisableUnattendedUpgrades = "disable-unattended-upgrades"
-	configDecoder             runtime.Decoder
-	configScheme              *runtime.Scheme
+	configDecoder runtime.Decoder
+	configScheme  *runtime.Scheme
 	// config is the parsed configFile
 	extensionConfig *configv1alpha1.ExtensionConfig
 )
@@ -35,21 +32,21 @@ func init() {
 
 // UbuntuOptions are command line options that can be set for ubuntu configuration.
 type UbuntuOptions struct {
-	// DisableUnattendedUpgrades is the flag to disable unattended upgrades in ubuntu.
-	DisableUnattendedUpgrades bool
 	// configFile path of the extension config
 	configFile string
 }
 
 // AddFlags implements cmd.Option.
 func (u *UbuntuOptions) AddFlags(fs *pflag.FlagSet) {
-	fs.BoolVar(&u.DisableUnattendedUpgrades, DisableUnattendedUpgrades, u.DisableUnattendedUpgrades, "The flag to disable unattended upgrades in ubuntu.")
 	fs.StringVar(&u.configFile, "config", u.configFile, "Path to configuration file.")
 }
 
 // Complete implements cmd.Option.
 func (u *UbuntuOptions) Complete() error {
 	extensionConfig = &configv1alpha1.ExtensionConfig{}
+	// Set defaults for ExtensionConfig
+	configScheme.Default(extensionConfig)
+	// Override defaults if specified
 	if u.configFile != "" {
 		data, err := os.ReadFile(u.configFile)
 		if err != nil {
@@ -58,13 +55,6 @@ func (u *UbuntuOptions) Complete() error {
 		if err = runtime.DecodeInto(configDecoder, data, extensionConfig); err != nil {
 			return fmt.Errorf("error decoding config: %w", err)
 		}
-	} else {
-		configScheme.Default(extensionConfig)
-	}
-
-	// If disable-unattended-upgrades is true then set DisableUnattendedUpgrades in ExtensionConfig to true
-	if u.DisableUnattendedUpgrades {
-		extensionConfig.DisableUnattendedUpgrades = ptr.To(u.DisableUnattendedUpgrades)
 	}
 
 	return nil
