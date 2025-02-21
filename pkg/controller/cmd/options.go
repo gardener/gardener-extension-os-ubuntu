@@ -27,7 +27,7 @@ func init() {
 		configv1alpha1.AddToScheme,
 	)
 	utilruntime.Must(schemeBuilder.AddToScheme(configScheme))
-	configDecoder = serializer.NewCodecFactory(configScheme).UniversalDecoder()
+	configDecoder = serializer.NewCodecFactory(configScheme, serializer.EnableStrict).UniversalDecoder()
 }
 
 // UbuntuOptions are command line options that can be set for ubuntu configuration.
@@ -44,8 +44,6 @@ func (u *UbuntuOptions) AddFlags(fs *pflag.FlagSet) {
 // Complete implements cmd.Option.
 func (u *UbuntuOptions) Complete() error {
 	extensionConfig = &configv1alpha1.ExtensionConfig{}
-	// Set defaults for ExtensionConfig
-	configScheme.Default(extensionConfig)
 	// Override defaults if specified
 	if u.configFile != "" {
 		data, err := os.ReadFile(u.configFile)
@@ -55,6 +53,8 @@ func (u *UbuntuOptions) Complete() error {
 		if err = runtime.DecodeInto(configDecoder, data, extensionConfig); err != nil {
 			return fmt.Errorf("error decoding config: %w", err)
 		}
+	} else {
+		configScheme.Default(extensionConfig)
 	}
 
 	return nil
