@@ -13,7 +13,9 @@ func SetDefaults_ExtensionConfig(obj *ExtensionConfig) {
 	if obj.NTP == nil {
 		obj.NTP = &NTPConfig{}
 	}
-	obj.DisableUnattendedUpgrades = ptr.To(false)
+	if obj.DisableUnattendedUpgrades == nil {
+		obj.DisableUnattendedUpgrades = ptr.To(false)
+	}
 }
 
 func SetDefaults_NTPConfig(obj *NTPConfig) {
