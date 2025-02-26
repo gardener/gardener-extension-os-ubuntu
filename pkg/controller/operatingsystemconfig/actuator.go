@@ -9,6 +9,8 @@ import (
 	_ "embed"
 	"fmt"
 	"path/filepath"
+	"strings"
+	"text/template"
 
 	"github.com/gardener/gardener/extensions/pkg/controller/operatingsystemconfig"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
@@ -16,18 +18,42 @@ import (
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+
+	configv1alpha1 "github.com/gardener/gardener-extension-os-ubuntu/pkg/controller/config/v1alpha1"
 )
 
+//go:embed templates/ntp-config.conf.tpl
+var ntpConfigTemplateContent string
+
+//go:embed scripts/installNTP.sh
+var ntpInstallScript string
+
+var ntpConfigTemplate *template.Template
+
 type actuator struct {
-	client                    client.Client
-	disableUnattendedUpgrades bool
+	client          client.Client
+	extensionConfig Config
+}
+
+// Config contains configuration for the extension service.
+type Config struct {
+	// Embed the entire Extension config here for direct access in the controller.
+	*configv1alpha1.ExtensionConfig
+}
+
+func init() {
+	var err error
+	ntpConfigTemplate, err = template.New("ntp-config").Parse(ntpConfigTemplateContent)
+	if err != nil {
+		panic(fmt.Errorf("failed to parse NTP config template: %w", err))
+	}
 }
 
 // NewActuator creates a new Actuator that updates the status of the handled OperatingSystemConfig resources.
-func NewActuator(mgr manager.Manager, disableUnattendedUpgrades bool) operatingsystemconfig.Actuator {
+func NewActuator(mgr manager.Manager, extensionConfig Config) operatingsystemconfig.Actuator {
 	return &actuator{
-		client:                    mgr.GetClient(),
-		disableUnattendedUpgrades: disableUnattendedUpgrades,
+		client:          mgr.GetClient(),
+		extensionConfig: extensionConfig,
 	}
 }
 
@@ -94,7 +120,7 @@ ExecStart=
 ExecStart=/usr/bin/containerd --config=/etc/containerd/config.toml
 EOF
 chmod 0644 /etc/systemd/system/containerd.service.d/11-exec_config.conf
-` + disableUnattendedUpgradesScript(a.disableUnattendedUpgrades) + `
+` + disableUnattendedUpgradesScript(a.extensionConfig.DisableUnattendedUpgrades) + `
 systemctl daemon-reload
 systemctl enable containerd && systemctl restart containerd
 systemctl enable docker && systemctl restart docker
@@ -110,11 +136,28 @@ systemctl enable docker && systemctl restart docker
 	return script, nil
 }
 
+func (a *actuator) generateNTPConfig() (string, error) {
+	templateData := a.extensionConfig.NTP.NTPD
+	var templateOutput strings.Builder
+
+	err := ntpConfigTemplate.Execute(&templateOutput, templateData)
+	if err != nil {
+		return "", fmt.Errorf("error executing template: %v", err)
+	}
+
+	return templateOutput.String(), nil
+}
+
 func (a *actuator) handleReconcileOSC(_ *extensionsv1alpha1.OperatingSystemConfig) ([]extensionsv1alpha1.Unit, []extensionsv1alpha1.File, error) {
 	var (
 		extensionUnits []extensionsv1alpha1.Unit
 		extensionFiles []extensionsv1alpha1.File
 	)
+
+	var err error
+	if extensionUnits, extensionFiles, err = a.configureNTPDaemon(extensionUnits, extensionFiles); err != nil {
+		return nil, nil, fmt.Errorf("error configuring NTP Daemon: %v", err)
+	}
 
 	// add scripts and dropins for kubelet
 	filePathKubeletConfigureResolvConfScript := filepath.Join("/", "opt", "gardener", "bin", "configure_kubelet_resolv_conf.sh")
@@ -141,8 +184,8 @@ ExecStartPre=` + filePathKubeletConfigureResolvConfScript + `
 	return extensionUnits, extensionFiles, nil
 }
 
-func disableUnattendedUpgradesScript(disableAutoUpgrades bool) string {
-	if disableAutoUpgrades {
+func disableUnattendedUpgradesScript(disableAutoUpgrades *bool) string {
+	if disableAutoUpgrades != nil && *disableAutoUpgrades {
 		return `
 mkdir -p /etc/apt/apt.conf.d
 cat <<EOF > /etc/apt/apt.conf.d/99-auto-upgrades.conf
@@ -152,4 +195,47 @@ chmod 0644 /etc/apt/apt.conf.d/99-auto-upgrades.conf
 `
 	}
 	return ""
+}
+
+// configureNTPDaemon configures the VM either with systemd-timesyncd or ntpd as the time syncing client
+func (a *actuator) configureNTPDaemon(extensionUnits []extensionsv1alpha1.Unit, extensionFiles []extensionsv1alpha1.File) ([]extensionsv1alpha1.Unit, []extensionsv1alpha1.File, error) {
+	filePathNTPScript := filepath.Join(string(filepath.Separator), "opt", "gardener", "bin", "install-ntp.sh")
+	extensionFiles = append(extensionFiles, extensionsv1alpha1.File{
+		Path:        filePathNTPScript,
+		Content:     extensionsv1alpha1.FileContent{Inline: &extensionsv1alpha1.FileContentInline{Data: ntpInstallScript}},
+		Permissions: ptr.To[uint32](0744),
+	})
+
+	switch a.extensionConfig.NTP.Daemon {
+	case configv1alpha1.SystemdTimesyncd:
+	case configv1alpha1.NTPD:
+		templateData, err := a.generateNTPConfig()
+		if err != nil {
+			return nil, nil, fmt.Errorf("error generating NTP config: %v", err)
+		}
+		extensionFiles = append(extensionFiles, extensionsv1alpha1.File{
+			Path:        filepath.Join(string(filepath.Separator), "etc", "ntp.conf"),
+			Content:     extensionsv1alpha1.FileContent{Inline: &extensionsv1alpha1.FileContentInline{Data: templateData}},
+			Permissions: ptr.To[uint32](0644),
+		})
+	default:
+		return nil, nil, fmt.Errorf("unsupported NTP daemon: %s", a.extensionConfig.NTP.Daemon)
+	}
+
+	extensionUnits = append(extensionUnits, extensionsv1alpha1.Unit{
+		Name: "install-ntp-client.service",
+		Content: ptr.To(`[Unit]
+Description=Oneshot service to install requested ntp client
+
+[Service]
+Type=oneshot
+ExecStart=` + fmt.Sprintf("/bin/bash %s %s", filePathNTPScript, a.extensionConfig.NTP.Daemon) + `
+
+[Install]
+WantedBy=multi-user.target
+`),
+		Command: ptr.To(extensionsv1alpha1.CommandRestart),
+	})
+
+	return extensionUnits, extensionFiles, nil
 }

@@ -5,6 +5,15 @@ image:
 
 resources: {}
 
+config: {}
+#  disableUnattendedUpgrades: false
+#  ntp:
+#    daemon: ntpd
+#    ntpd:
+#      servers:
+#        - ptbtime1.ptb.de
+
+
 vpa:
   enabled: true
   resourcePolicy:
@@ -31,5 +40,3 @@ metrics:
   # enable metrics scraping
   enableScraping: true
   port: 8080
-
-disableAutoUpgrades: false
