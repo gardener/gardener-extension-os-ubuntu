@@ -110,12 +110,13 @@ touch /var/lib/osc/provision-osc-applied
 
 		Describe("#Reconcile", func() {
 			It("should not return an error", func() {
-				userData, extensionUnits, extensionFiles, err := actuator.Reconcile(ctx, log, osc)
+				userData, extensionUnits, extensionFiles, inplaceUpdateStatus, err := actuator.Reconcile(ctx, log, osc)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(string(userData)).To(Equal(expectedUserData))
 				Expect(extensionUnits).To(BeEmpty())
 				Expect(extensionFiles).To(BeEmpty())
+				Expect(inplaceUpdateStatus).To(BeNil())
 			})
 		})
 
@@ -178,12 +179,13 @@ touch /var/lib/osc/provision-osc-applied
 			It("should not return an error", func() {
 				extensionConfig := Config{ExtensionConfig: &v1alpha1.ExtensionConfig{DisableUnattendedUpgrades: ptr.To(true)}}
 				actuator = NewActuator(mgr, extensionConfig)
-				userData, extensionUnits, extensionFiles, err := actuator.Reconcile(ctx, log, osc)
+				userData, extensionUnits, extensionFiles, inplaceUpdateStatus, err := actuator.Reconcile(ctx, log, osc)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(string(userData)).To(Equal(expectedUserData))
 				Expect(extensionUnits).To(BeEmpty())
 				Expect(extensionFiles).To(BeEmpty())
+				Expect(inplaceUpdateStatus).To(BeNil())
 			})
 		})
 	})
@@ -195,7 +197,7 @@ touch /var/lib/osc/provision-osc-applied
 
 		Describe("#Reconcile", func() {
 			It("should not return an error", func() {
-				userData, extensionUnits, extensionFiles, err := actuator.Reconcile(ctx, log, osc)
+				userData, extensionUnits, extensionFiles, _, err := actuator.Reconcile(ctx, log, osc)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(userData).To(BeEmpty())
@@ -252,7 +254,7 @@ fi
 					},
 				}
 				actuator = NewActuator(mgr, extensionConfig)
-				userData, extensionUnits, extensionFiles, err := actuator.Reconcile(ctx, log, osc)
+				userData, extensionUnits, extensionFiles, _, err := actuator.Reconcile(ctx, log, osc)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(userData).To(BeEmpty())
 
