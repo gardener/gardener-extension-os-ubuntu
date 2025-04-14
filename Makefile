@@ -30,7 +30,6 @@ include $(GARDENER_HACK_DIR)/tools.mk
 .PHONY: start
 start:
 	@LEADER_ELECTION_NAMESPACE=default GO111MODULE=on go run \
-
 		-ldflags $(LD_FLAGS) \
 		./cmd/$(EXTENSION_PREFIX)-$(NAME) \
 		--leader-election=$(LEADER_ELECTION) \
