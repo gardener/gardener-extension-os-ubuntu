@@ -22,6 +22,9 @@ type ExtensionConfig struct {
 	// DisableUnattendedUpgrades to disable unattended upgrades in ubuntu
 	// +optional
 	DisableUnattendedUpgrades *bool `json:"disableUnattendedUpgrades,omitempty"`
+	// Mirror to set custom Ubuntu mirror
+	// +optional
+	ATPConfig APTConfig `json:"apt,omitempty"`
 }
 
 // NTPConfig General NTP Config for either systemd-timesyncd or ntpd
@@ -37,4 +40,39 @@ type NTPConfig struct {
 type NTPDConfig struct {
 	// Servers List of ntp servers
 	Servers []string `json:"servers"`
+}
+
+type APTConfig struct {
+	PreserveSourcesList bool         `json:"preserveSourcesList,omitempty"`
+	Primary             []APTArchive `json:"primary,omitempty"`
+	Security            []APTArchive `json:"security,omitempty"`
+}
+
+type APTArchive struct {
+	Arches    []string `json:"arches,omitempty"`
+	URI       string   `json:"uri,omitempty"`
+	Search    []string `json:"search,omitempty"`
+	SearchDNS bool     `json:"searchDNS,omitempty"`
+}
+
+type APTConfigSnake struct {
+	PreserveSourcesList bool              `json:"preserve_sources_list"`
+	Primary             []APTArchiveSnake `json:"primary,omitempty"`
+	Security            []APTArchiveSnake `json:"security,omitempty"`
+}
+
+type APTArchiveSnake struct {
+	Arches    []string `json:"arches,omitempty"`
+	URI       string   `json:"uri,omitempty"`
+	Search    []string `json:"search,omitempty"`
+	SearchDNS bool     `json:"search_dns,omitempty"`
+}
+
+type APTCloudInit struct {
+	APT APTConfigSnake `json:"apt,omitempty"`
+}
+
+type FilePart struct {
+	Type    string `json:"type"`
+	Content string `json:"content"`
 }
