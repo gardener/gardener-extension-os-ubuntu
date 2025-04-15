@@ -8,7 +8,9 @@ import (
 	"context"
 	_ "embed"
 	"fmt"
+	"k8s.io/apimachinery/pkg/util/json"
 	"path/filepath"
+	"sigs.k8s.io/yaml"
 	"strings"
 	"text/template"
 
@@ -89,6 +91,43 @@ func (a *actuator) Restore(ctx context.Context, log logr.Logger, osc *extensions
 }
 
 func (a *actuator) handleProvisionOSC(ctx context.Context, osc *extensionsv1alpha1.OperatingSystemConfig) (string, error) {
+
+	aptConfig := configv1alpha1.APTConfigSnake{}
+	aptConfig.PreserveSourcesList = a.extensionConfig.ATPConfig.PreserveSourcesList
+	if len(a.extensionConfig.ATPConfig.Primary) > 0 {
+		for _, primary := range a.extensionConfig.ATPConfig.Primary {
+			archive := configv1alpha1.APTArchiveSnake{
+				Arches:    primary.Arches,
+				URI:       primary.URI,
+				Search:    primary.Search,
+				SearchDNS: primary.SearchDNS,
+			}
+			aptConfig.Primary = append(aptConfig.Primary, archive)
+		}
+	}
+	if len(a.extensionConfig.ATPConfig.Security) > 0 {
+		for _, security := range a.extensionConfig.ATPConfig.Security {
+			archive := configv1alpha1.APTArchiveSnake{
+				Arches:    security.Arches,
+				URI:       security.URI,
+				Search:    security.Search,
+				SearchDNS: security.SearchDNS,
+			}
+			aptConfig.Security = append(aptConfig.Security, archive)
+		}
+	}
+
+	cloudInit := configv1alpha1.APTCloudInit{APT: aptConfig}
+	aptData, err := json.Marshal(cloudInit)
+	if err != nil {
+		return "", err
+	}
+	yamlData, err := yaml.JSONToYAML(aptData)
+	if err != nil {
+		return "", err
+	}
+	aptString := string(yamlData)
+
 	writeFilesToDiskScript, err := operatingsystemconfig.FilesToDiskScript(ctx, a.client, osc.Namespace, osc.Spec.Files)
 	if err != nil {
 		return "", err
@@ -131,7 +170,32 @@ systemctl enable containerd && systemctl restart containerd
 
 	script = operatingsystemconfig.WrapProvisionOSCIntoOneshotScript(script)
 
-	return script, nil
+	cloudConfigHeader := "#cloud-config\n"
+	aptString = cloudConfigHeader + aptString
+
+	parts := []configv1alpha1.FilePart{
+		{
+			Type:    "text/x-shellscript",
+			Content: script,
+		},
+	}
+
+	if aptConfig.Primary != nil || aptConfig.Security != nil {
+		aptCloudConfig := configv1alpha1.FilePart{
+			Type:    "text/cloud-config",
+			Content: aptString,
+		}
+		parts = append(parts, aptCloudConfig)
+	}
+
+	header := "#cloud-config-archive\n"
+	yamlBody, err := yaml.Marshal(parts)
+	if err != nil {
+		return "", fmt.Errorf("error marshalling archives: %v", err)
+	}
+	archive := header + string(yamlBody)
+
+	return archive, nil
 }
 
 func (a *actuator) generateNTPConfig() (string, error) {

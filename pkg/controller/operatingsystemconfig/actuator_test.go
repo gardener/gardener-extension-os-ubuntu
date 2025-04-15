@@ -58,52 +58,56 @@ var _ = Describe("Actuator", func() {
 	})
 
 	When("purpose is 'provision'", func() {
-		expectedUserData := `#!/bin/bash
-if [ -f "/var/lib/osc/provision-osc-applied" ]; then
-  echo "Provision OSC already applied, exiting..."
-  exit 0
-fi
+		expectedUserData := `#cloud-config-archive
+- content: |
+    #!/bin/bash
+    if [ -f "/var/lib/osc/provision-osc-applied" ]; then
+      echo "Provision OSC already applied, exiting..."
+      exit 0
+    fi
 
-mkdir -p /etc/cloud/cloud.cfg.d/
-cat <<EOF > /etc/cloud/cloud.cfg.d/custom-networking.cfg
-network:
-  config: disabled
-EOF
-chmod 0644 /etc/cloud/cloud.cfg.d/custom-networking.cfg
+    mkdir -p /etc/cloud/cloud.cfg.d/
+    cat <<EOF > /etc/cloud/cloud.cfg.d/custom-networking.cfg
+    network:
+      config: disabled
+    EOF
+    chmod 0644 /etc/cloud/cloud.cfg.d/custom-networking.cfg
 
-mkdir -p "/some"
+    mkdir -p "/some"
 
-cat << EOF | base64 -d > "/some/file"
-YmFy
-EOF
-
-
-cat << EOF | base64 -d > "/etc/systemd/system/some-unit"
-Zm9v
-EOF
-until apt-get update -qq && apt-get install --no-upgrade -qqy containerd runc socat nfs-common logrotate jq policykit-1; do sleep 1; done
-
-if [ ! -s /etc/containerd/config.toml ]; then
-  mkdir -p /etc/containerd/
-  containerd config default > /etc/containerd/config.toml
-  chmod 0644 /etc/containerd/config.toml
-fi
-
-mkdir -p /etc/systemd/system/containerd.service.d
-cat <<EOF > /etc/systemd/system/containerd.service.d/11-exec_config.conf
-[Service]
-ExecStart=
-ExecStart=/usr/bin/containerd --config=/etc/containerd/config.toml
-EOF
-chmod 0644 /etc/systemd/system/containerd.service.d/11-exec_config.conf
-
-systemctl daemon-reload
-systemctl enable containerd && systemctl restart containerd
-systemctl enable 'some-unit' && systemctl restart --no-block 'some-unit'
+    cat << EOF | base64 -d > "/some/file"
+    YmFy
+    EOF
 
 
-mkdir -p /var/lib/osc
-touch /var/lib/osc/provision-osc-applied
+    cat << EOF | base64 -d > "/etc/systemd/system/some-unit"
+    Zm9v
+    EOF
+    until apt-get update -qq && apt-get install --no-upgrade -qqy containerd runc  socat nfs-common logrotate jq policykit-1; do sleep 1; done
+    
+
+    if [ ! -s /etc/containerd/config.toml ]; then
+      mkdir -p /etc/containerd/
+      containerd config default > /etc/containerd/config.toml
+      chmod 0644 /etc/containerd/config.toml
+    fi
+
+    mkdir -p /etc/systemd/system/containerd.service.d
+    cat <<EOF > /etc/systemd/system/containerd.service.d/11-exec_config.conf
+    [Service]
+    ExecStart=
+    ExecStart=/usr/bin/containerd --config=/etc/containerd/config.toml
+    EOF
+    chmod 0644 /etc/systemd/system/containerd.service.d/11-exec_config.conf
+
+    systemctl daemon-reload
+    systemctl enable containerd && systemctl restart containerd
+    systemctl enable 'some-unit' && systemctl restart --no-block 'some-unit'
+
+
+    mkdir -p /var/lib/osc
+    touch /var/lib/osc/provision-osc-applied
+  type: text/x-shellscript
 `
 
 		Describe("#Reconcile", func() {
@@ -119,58 +123,62 @@ touch /var/lib/osc/provision-osc-applied
 		})
 
 		Describe("#Reconcile with disabled unattended upgrades", func() {
-			expectedUserData := `#!/bin/bash
-if [ -f "/var/lib/osc/provision-osc-applied" ]; then
-  echo "Provision OSC already applied, exiting..."
-  exit 0
-fi
+			expectedUserData := `#cloud-config-archive
+- content: |
+    #!/bin/bash
+    if [ -f "/var/lib/osc/provision-osc-applied" ]; then
+      echo "Provision OSC already applied, exiting..."
+      exit 0
+    fi
 
-mkdir -p /etc/cloud/cloud.cfg.d/
-cat <<EOF > /etc/cloud/cloud.cfg.d/custom-networking.cfg
-network:
-  config: disabled
-EOF
-chmod 0644 /etc/cloud/cloud.cfg.d/custom-networking.cfg
+    mkdir -p /etc/cloud/cloud.cfg.d/
+    cat <<EOF > /etc/cloud/cloud.cfg.d/custom-networking.cfg
+    network:
+      config: disabled
+    EOF
+    chmod 0644 /etc/cloud/cloud.cfg.d/custom-networking.cfg
 
-mkdir -p "/some"
+    mkdir -p "/some"
 
-cat << EOF | base64 -d > "/some/file"
-YmFy
-EOF
-
-
-cat << EOF | base64 -d > "/etc/systemd/system/some-unit"
-Zm9v
-EOF
-until apt-get update -qq && apt-get install --no-upgrade -qqy containerd runc socat nfs-common logrotate jq policykit-1; do sleep 1; done
-
-if [ ! -s /etc/containerd/config.toml ]; then
-  mkdir -p /etc/containerd/
-  containerd config default > /etc/containerd/config.toml
-  chmod 0644 /etc/containerd/config.toml
-fi
-
-mkdir -p /etc/systemd/system/containerd.service.d
-cat <<EOF > /etc/systemd/system/containerd.service.d/11-exec_config.conf
-[Service]
-ExecStart=
-ExecStart=/usr/bin/containerd --config=/etc/containerd/config.toml
-EOF
-chmod 0644 /etc/systemd/system/containerd.service.d/11-exec_config.conf
-
-mkdir -p /etc/apt/apt.conf.d
-cat <<EOF > /etc/apt/apt.conf.d/99-auto-upgrades.conf
-APT::Periodic::Unattended-Upgrade "0";
-EOF
-chmod 0644 /etc/apt/apt.conf.d/99-auto-upgrades.conf
-
-systemctl daemon-reload
-systemctl enable containerd && systemctl restart containerd
-systemctl enable 'some-unit' && systemctl restart --no-block 'some-unit'
+    cat << EOF | base64 -d > "/some/file"
+    YmFy
+    EOF
 
 
-mkdir -p /var/lib/osc
-touch /var/lib/osc/provision-osc-applied
+    cat << EOF | base64 -d > "/etc/systemd/system/some-unit"
+    Zm9v
+    EOF
+    until apt-get update -qq && apt-get install --no-upgrade -qqy containerd runc  socat nfs-common logrotate jq policykit-1; do sleep 1; done
+    
+
+    if [ ! -s /etc/containerd/config.toml ]; then
+      mkdir -p /etc/containerd/
+      containerd config default > /etc/containerd/config.toml
+      chmod 0644 /etc/containerd/config.toml
+    fi
+
+    mkdir -p /etc/systemd/system/containerd.service.d
+    cat <<EOF > /etc/systemd/system/containerd.service.d/11-exec_config.conf
+    [Service]
+    ExecStart=
+    ExecStart=/usr/bin/containerd --config=/etc/containerd/config.toml
+    EOF
+    chmod 0644 /etc/systemd/system/containerd.service.d/11-exec_config.conf
+
+    mkdir -p /etc/apt/apt.conf.d
+    cat <<EOF > /etc/apt/apt.conf.d/99-auto-upgrades.conf
+    APT::Periodic::Unattended-Upgrade "0";
+    EOF
+    chmod 0644 /etc/apt/apt.conf.d/99-auto-upgrades.conf
+
+    systemctl daemon-reload
+    systemctl enable containerd && systemctl restart containerd
+    systemctl enable 'some-unit' && systemctl restart --no-block 'some-unit'
+
+
+    mkdir -p /var/lib/osc
+    touch /var/lib/osc/provision-osc-applied
+  type: text/x-shellscript
 `
 			It("should not return an error", func() {
 				extensionConfig := Config{ExtensionConfig: &v1alpha1.ExtensionConfig{DisableUnattendedUpgrades: ptr.To(true)}}
