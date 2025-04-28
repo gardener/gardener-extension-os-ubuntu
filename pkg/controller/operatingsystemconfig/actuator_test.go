@@ -192,6 +192,100 @@ var _ = Describe("Actuator", func() {
 				Expect(inplaceUpdateStatus).To(BeNil())
 			})
 		})
+
+		Describe("#Reconcile with custom apt config", func() {
+			expectedUserData := `#cloud-config-archive
+- content: |
+    #!/bin/bash
+    if [ -f "/var/lib/osc/provision-osc-applied" ]; then
+      echo "Provision OSC already applied, exiting..."
+      exit 0
+    fi
+
+    mkdir -p /etc/cloud/cloud.cfg.d/
+    cat <<EOF > /etc/cloud/cloud.cfg.d/custom-networking.cfg
+    network:
+      config: disabled
+    EOF
+    chmod 0644 /etc/cloud/cloud.cfg.d/custom-networking.cfg
+
+    mkdir -p "/some"
+
+    cat << EOF | base64 -d > "/some/file"
+    YmFy
+    EOF
+
+
+    cat << EOF | base64 -d > "/etc/systemd/system/some-unit"
+    Zm9v
+    EOF
+    until apt-get update -qq && apt-get install --no-upgrade -qqy containerd runc docker.io socat nfs-common logrotate jq policykit-1; do sleep 1; done
+    ln -s /usr/bin/docker /bin/docker
+
+    if [ ! -s /etc/containerd/config.toml ]; then
+      mkdir -p /etc/containerd/
+      containerd config default > /etc/containerd/config.toml
+      chmod 0644 /etc/containerd/config.toml
+    fi
+
+    mkdir -p /etc/systemd/system/containerd.service.d
+    cat <<EOF > /etc/systemd/system/containerd.service.d/11-exec_config.conf
+    [Service]
+    ExecStart=
+    ExecStart=/usr/bin/containerd --config=/etc/containerd/config.toml
+    EOF
+    chmod 0644 /etc/systemd/system/containerd.service.d/11-exec_config.conf
+
+    systemctl daemon-reload
+    systemctl enable containerd && systemctl restart containerd
+    systemctl enable docker && systemctl restart docker
+    systemctl enable 'some-unit' && systemctl restart --no-block 'some-unit'
+
+
+    mkdir -p /var/lib/osc
+    touch /var/lib/osc/provision-osc-applied
+  type: text/x-shellscript
+- content: |
+    #cloud-config
+    apt:
+      preserve_sources_list: false
+      primary:
+      - arches:
+        - default
+        uri: http://packages.ubuntu-mirror.example.com/apt-mirror/ubuntu
+      security:
+      - arches:
+        - default
+        uri: http://packages.ubuntu-mirror.example.com/apt-mirror/ubuntu
+  type: text/cloud-config
+`
+
+			It("should not return an error", func() {
+				extensionConfig := Config{ExtensionConfig: &v1alpha1.ExtensionConfig{ATPConfig: v1alpha1.APTConfig{
+					PreserveSourcesList: false,
+					Primary: []v1alpha1.APTArchive{
+						v1alpha1.APTArchive{
+							Arches: []string{"default"},
+							URI:    "http://packages.ubuntu-mirror.example.com/apt-mirror/ubuntu",
+						},
+					},
+					Security: []v1alpha1.APTArchive{
+						v1alpha1.APTArchive{
+							Arches: []string{"default"},
+							URI:    "http://packages.ubuntu-mirror.example.com/apt-mirror/ubuntu",
+						},
+					},
+				}}}
+				actuator = NewActuator(mgr, extensionConfig)
+				userData, extensionUnits, extensionFiles, inplaceUpdateStatus, err := actuator.Reconcile(ctx, log, osc)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(string(userData)).To(Equal(expectedUserData))
+				Expect(extensionUnits).To(BeEmpty())
+				Expect(extensionFiles).To(BeEmpty())
+				Expect(inplaceUpdateStatus).To(BeNil())
+			})
+		})
 	})
 
 	When("purpose is 'reconcile'", func() {
