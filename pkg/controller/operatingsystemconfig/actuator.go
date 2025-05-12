@@ -8,6 +8,7 @@ import (
 	"context"
 	_ "embed"
 	"fmt"
+	"github.com/gardener/gardener-extension-os-ubuntu/pkg/internal"
 	"k8s.io/apimachinery/pkg/util/json"
 	"path/filepath"
 	"sigs.k8s.io/yaml"
@@ -92,11 +93,11 @@ func (a *actuator) Restore(ctx context.Context, log logr.Logger, osc *extensions
 
 func (a *actuator) handleProvisionOSC(ctx context.Context, osc *extensionsv1alpha1.OperatingSystemConfig) (string, error) {
 
-	aptConfig := configv1alpha1.APTConfigSnake{}
+	aptConfig := internal.APTConfigSnake{}
 	aptConfig.PreserveSourcesList = a.extensionConfig.ATPConfig.PreserveSourcesList
 	if len(a.extensionConfig.ATPConfig.Primary) > 0 {
 		for _, primary := range a.extensionConfig.ATPConfig.Primary {
-			archive := configv1alpha1.APTArchiveSnake{
+			archive := internal.APTArchiveSnake{
 				Arches:    primary.Arches,
 				URI:       primary.URI,
 				Search:    primary.Search,
@@ -107,7 +108,7 @@ func (a *actuator) handleProvisionOSC(ctx context.Context, osc *extensionsv1alph
 	}
 	if len(a.extensionConfig.ATPConfig.Security) > 0 {
 		for _, security := range a.extensionConfig.ATPConfig.Security {
-			archive := configv1alpha1.APTArchiveSnake{
+			archive := internal.APTArchiveSnake{
 				Arches:    security.Arches,
 				URI:       security.URI,
 				Search:    security.Search,
@@ -117,7 +118,7 @@ func (a *actuator) handleProvisionOSC(ctx context.Context, osc *extensionsv1alph
 		}
 	}
 
-	cloudInit := configv1alpha1.APTCloudInit{APT: aptConfig}
+	cloudInit := internal.APTCloudInit{APT: aptConfig}
 	aptData, err := json.Marshal(cloudInit)
 	if err != nil {
 		return "", err
@@ -173,7 +174,7 @@ systemctl enable containerd && systemctl restart containerd
 	cloudConfigHeader := "#cloud-config\n"
 	aptString = cloudConfigHeader + aptString
 
-	parts := []configv1alpha1.FilePart{
+	parts := []internal.FilePart{
 		{
 			Type:    "text/x-shellscript",
 			Content: script,
@@ -181,7 +182,7 @@ systemctl enable containerd && systemctl restart containerd
 	}
 
 	if aptConfig.Primary != nil || aptConfig.Security != nil {
-		aptCloudConfig := configv1alpha1.FilePart{
+		aptCloudConfig := internal.FilePart{
 			Type:    "text/cloud-config",
 			Content: aptString,
 		}
