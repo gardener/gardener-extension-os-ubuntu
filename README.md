@@ -1,6 +1,7 @@
 # [Gardener Extension for Ubuntu OS](https://gardener.cloud)
+
 [![REUSE status](https://api.reuse.software/badge/github.com/gardener/gardener-extension-os-ubuntu)](https://api.reuse.software/info/github.com/gardener/gardener-extension-os-ubuntu)
-[![CI Build status](https://concourse.ci.gardener.cloud/api/v1/teams/gardener/pipelines/gardener-extension-os-ubuntu-master/jobs/master-head-update-job/badge)](https://concourse.ci.gardener.cloud/teams/gardener/pipelines/gardener-extension-os-ubuntu-master/jobs/master-head-update-job)
+[![Build status](https://github.com/gardener/gardener-extension-os-ubuntu/actions/workflows/non-release.yaml/badge.svg?branch=master)](https://github.com/gardener/gardener-extension-os-ubuntu/actions/workflows/non-release.yaml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/gardener/gardener-extension-os-ubuntu)](https://goreportcard.com/report/github.com/gardener/gardener-extension-os-ubuntu)
 
 This controller operates on the [`OperatingSystemConfig`](https://github.com/gardener/gardener/blob/master/docs/proposals/01-extensibility.md#cloud-config-user-data-for-bootstrapping-machines) resource in the `extensions.gardener.cloud/v1alpha1` API group. It manages those objects that are requesting [Ubuntu OS](https://www.ubuntu.com/) configuration (`.spec.type=ubuntu`). An experimental support for Ubuntu Pro is added (`.spec.type=ubuntu-pro`):
