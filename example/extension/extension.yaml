@@ -1,0 +1,12 @@
+apiVersion: operator.gardener.cloud/v1alpha1
+kind: Extension
+metadata:
+  name: os-ubuntu
+  annotations:
+    security.gardener.cloud/pod-security-enforce: baseline
+spec:
+  resources:
+  - kind: OperatingSystemConfig
+    type: ubuntu
+  - kind: OperatingSystemConfig
+    type: ubuntu-pro
