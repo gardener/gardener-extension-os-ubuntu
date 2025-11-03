@@ -3,6 +3,8 @@ package validation
 import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"net/url"
+	"slices"
 
 	configv1alpha1 "github.com/gardener/gardener-extension-os-ubuntu/pkg/controller/config/v1alpha1"
 )
@@ -30,6 +32,10 @@ func ValidateExtensionConfig(config *configv1alpha1.ExtensionConfig) field.Error
 
 	}
 
+	if config.APTConfig != nil {
+		allErrs = append(allErrs, validateAPTConfig(config.APTConfig, rootPath)...)
+	}
+
 	return allErrs
 }
 
@@ -39,4 +45,44 @@ func validateNTPDConfig(config *configv1alpha1.NTPDConfig, fldPath *field.Path) 
 		allErrs = append(allErrs, field.Required(fldPath.Child("servers"), "a list of NTP servers is required"))
 	}
 	return allErrs
+}
+
+func validateAPTConfig(config *configv1alpha1.APTConfig, fldPath *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
+	allErrs = append(allErrs, validateAPTArchive(config.Primary, fldPath, "primary")...)
+	allErrs = append(allErrs, validateAPTArchive(config.Security, fldPath, "security")...)
+	return allErrs
+}
+
+func validateAPTArchive(config []configv1alpha1.APTArchive, fldPath *field.Path, archiveName string) field.ErrorList {
+	validArchitectureNames := sets.New(configv1alpha1.Default, configv1alpha1.AMD64, configv1alpha1.ARM64)
+	allErrs := field.ErrorList{}
+	if config != nil {
+		for _, configArchive := range config {
+
+			for _, arch := range configArchive.Arches {
+				if !slices.Contains(validArchitectureNames.UnsortedList(), arch) {
+					allErrs = append(allErrs, field.NotSupported(fldPath.Child("apt").Child(archiveName).Child("arches"), configArchive.Arches, validArchitectureNames.UnsortedList()))
+				}
+			}
+			if !isValidURL(configArchive.URI) {
+				allErrs = append(allErrs, field.Invalid(fldPath.Child("apt").Child(archiveName).Child("uri"), configArchive.URI, "invalid URL"))
+			}
+			for _, search := range configArchive.Search {
+				if !isValidURL(search) {
+					allErrs = append(allErrs, field.Invalid(fldPath.Child("apt").Child(archiveName).Child("search"), search, "invalid URL"))
+				}
+			}
+		}
+	}
+	return allErrs
+}
+
+func isValidURL(uri string) bool {
+	u, err := url.Parse(uri)
+	if err != nil {
+		return false
+	}
+
+	return u.Scheme != "" && u.Host != ""
 }

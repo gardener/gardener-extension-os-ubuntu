@@ -24,7 +24,7 @@ type ExtensionConfig struct {
 	DisableUnattendedUpgrades *bool `json:"disableUnattendedUpgrades,omitempty"`
 	// Mirror to set custom Ubuntu mirror
 	// +optional
-	ATPConfig APTConfig `json:"apt,omitempty"`
+	APTConfig *APTConfig `json:"apt,omitempty"`
 }
 
 // NTPConfig General NTP Config for either systemd-timesyncd or ntpd
@@ -49,8 +49,16 @@ type APTConfig struct {
 }
 
 type APTArchive struct {
-	Arches    []string `json:"arches,omitempty"`
-	URI       string   `json:"uri,omitempty"`
-	Search    []string `json:"search,omitempty"`
-	SearchDNS bool     `json:"searchDNS,omitempty"`
+	Arches    []Architecture `json:"arches,omitempty"`
+	URI       string         `json:"uri,omitempty"`
+	Search    []string       `json:"search,omitempty"`
+	SearchDNS bool           `json:"searchDNS,omitempty"`
 }
+
+type Architecture string
+
+const (
+	AMD64   Architecture = "amd64"
+	ARM64   Architecture = "arm64"
+	Default Architecture = "Default"
+)
