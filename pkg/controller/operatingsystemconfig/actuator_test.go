@@ -261,7 +261,7 @@ var _ = Describe("Actuator", func() {
 `
 
 			It("should not return an error", func() {
-				extensionConfig := Config{ExtensionConfig: &v1alpha1.ExtensionConfig{ATPConfig: v1alpha1.APTConfig{
+				extensionConfig := Config{ExtensionConfig: &v1alpha1.ExtensionConfig{APTConfig: v1alpha1.APTConfig{
 					PreserveSourcesList: false,
 					Primary: []v1alpha1.APTArchive{
 						v1alpha1.APTArchive{
