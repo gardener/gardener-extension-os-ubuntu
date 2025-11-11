@@ -8,21 +8,21 @@ import (
 	"context"
 	_ "embed"
 	"fmt"
-	"github.com/gardener/gardener-extension-os-ubuntu/pkg/internal"
-	"k8s.io/apimachinery/pkg/util/json"
 	"path/filepath"
-	"sigs.k8s.io/yaml"
 	"strings"
 	"text/template"
 
 	"github.com/gardener/gardener/extensions/pkg/controller/operatingsystemconfig"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/go-logr/logr"
+	"k8s.io/apimachinery/pkg/util/json"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/yaml"
 
 	configv1alpha1 "github.com/gardener/gardener-extension-os-ubuntu/pkg/controller/config/v1alpha1"
+	"github.com/gardener/gardener-extension-os-ubuntu/pkg/internal"
 )
 
 //go:embed templates/ntp-config.conf.tpl

@@ -15,6 +15,7 @@ require (
 	k8s.io/component-base v0.34.2
 	k8s.io/utils v0.0.0-20251002143259-bc988d571ff4
 	sigs.k8s.io/controller-runtime v0.22.4
+	sigs.k8s.io/yaml v1.5.0
 )
 
 require (

@@ -10,6 +10,126 @@
 </p>
 Resource Types:
 <ul></ul>
+<h3 id="config.ubuntu.os.extensions.gardener.cloud/v1alpha1.APTArchive">APTArchive
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#config.ubuntu.os.extensions.gardener.cloud/v1alpha1.APTConfig">APTConfig</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>arches</code></br>
+<em>
+<a href="#config.ubuntu.os.extensions.gardener.cloud/v1alpha1.Architecture">
+[]Architecture
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>uri</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>search</code></br>
+<em>
+[]string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>searchDNS</code></br>
+<em>
+bool
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="config.ubuntu.os.extensions.gardener.cloud/v1alpha1.APTConfig">APTConfig
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#config.ubuntu.os.extensions.gardener.cloud/v1alpha1.ExtensionConfig">ExtensionConfig</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>preserveSourcesList</code></br>
+<em>
+bool
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>primary</code></br>
+<em>
+<a href="#config.ubuntu.os.extensions.gardener.cloud/v1alpha1.APTArchive">
+[]APTArchive
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>security</code></br>
+<em>
+<a href="#config.ubuntu.os.extensions.gardener.cloud/v1alpha1.APTArchive">
+[]APTArchive
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="config.ubuntu.os.extensions.gardener.cloud/v1alpha1.Architecture">Architecture
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#config.ubuntu.os.extensions.gardener.cloud/v1alpha1.APTArchive">APTArchive</a>)
+</p>
+<p>
+</p>
 <h3 id="config.ubuntu.os.extensions.gardener.cloud/v1alpha1.Daemon">Daemon
 (<code>string</code> alias)</p></h3>
 <p>
@@ -55,6 +175,20 @@ bool
 <td>
 <em>(Optional)</em>
 <p>DisableUnattendedUpgrades to disable unattended upgrades in ubuntu</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>apt</code></br>
+<em>
+<a href="#config.ubuntu.os.extensions.gardener.cloud/v1alpha1.APTConfig">
+APTConfig
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Mirror to set custom Ubuntu mirror</p>
 </td>
 </tr>
 </tbody>
