@@ -15,11 +15,14 @@ import (
 	"github.com/gardener/gardener/extensions/pkg/controller/operatingsystemconfig"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/go-logr/logr"
+	"k8s.io/apimachinery/pkg/util/json"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/yaml"
 
 	configv1alpha1 "github.com/gardener/gardener-extension-os-ubuntu/pkg/controller/config/v1alpha1"
+	"github.com/gardener/gardener-extension-os-ubuntu/pkg/internal"
 )
 
 //go:embed templates/ntp-config.conf.tpl
@@ -89,6 +92,45 @@ func (a *actuator) Restore(ctx context.Context, log logr.Logger, osc *extensions
 }
 
 func (a *actuator) handleProvisionOSC(ctx context.Context, osc *extensionsv1alpha1.OperatingSystemConfig) (string, error) {
+
+	aptConfig := internal.APTConfigSnake{}
+	if a.extensionConfig.APTConfig != nil {
+		aptConfig.PreserveSourcesList = a.extensionConfig.APTConfig.PreserveSourcesList
+		if len(a.extensionConfig.APTConfig.Primary) > 0 {
+			for _, primary := range a.extensionConfig.APTConfig.Primary {
+				archive := internal.APTArchiveSnake{
+					Arches:    primary.Arches,
+					URI:       primary.URI,
+					Search:    primary.Search,
+					SearchDNS: primary.SearchDNS,
+				}
+				aptConfig.Primary = append(aptConfig.Primary, archive)
+			}
+		}
+		if len(a.extensionConfig.APTConfig.Security) > 0 {
+			for _, security := range a.extensionConfig.APTConfig.Security {
+				archive := internal.APTArchiveSnake{
+					Arches:    security.Arches,
+					URI:       security.URI,
+					Search:    security.Search,
+					SearchDNS: security.SearchDNS,
+				}
+				aptConfig.Security = append(aptConfig.Security, archive)
+			}
+		}
+	}
+
+	cloudInit := internal.APTCloudInit{APT: aptConfig}
+	aptData, err := json.Marshal(cloudInit)
+	if err != nil {
+		return "", err
+	}
+	yamlData, err := yaml.JSONToYAML(aptData)
+	if err != nil {
+		return "", err
+	}
+	aptString := string(yamlData)
+
 	writeFilesToDiskScript, err := operatingsystemconfig.FilesToDiskScript(ctx, a.client, osc.Namespace, osc.Spec.Files)
 	if err != nil {
 		return "", err
@@ -133,7 +175,32 @@ systemctl enable docker && systemctl restart docker
 
 	script = operatingsystemconfig.WrapProvisionOSCIntoOneshotScript(script)
 
-	return script, nil
+	cloudConfigHeader := "#cloud-config\n"
+	aptString = cloudConfigHeader + aptString
+
+	parts := []internal.FilePart{
+		{
+			Type:    "text/x-shellscript",
+			Content: script,
+		},
+	}
+
+	if aptConfig.Primary != nil || aptConfig.Security != nil {
+		aptCloudConfig := internal.FilePart{
+			Type:    "text/cloud-config",
+			Content: aptString,
+		}
+		parts = append(parts, aptCloudConfig)
+	}
+
+	header := "#cloud-config-archive\n"
+	yamlBody, err := yaml.Marshal(parts)
+	if err != nil {
+		return "", fmt.Errorf("error marshalling archives: %v", err)
+	}
+	archive := header + string(yamlBody)
+
+	return archive, nil
 }
 
 func (a *actuator) generateNTPConfig() (string, error) {
