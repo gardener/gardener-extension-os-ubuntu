@@ -1,6 +1,7 @@
 package v1alpha1
 
 import (
+	"github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -58,7 +59,7 @@ type APTArchive struct {
 type Architecture string
 
 const (
-	AMD64   Architecture = "amd64"
-	ARM64   Architecture = "arm64"
-	Default Architecture = "Default"
+	AMD64   Architecture = constants.ArchitectureAMD64
+	ARM64   Architecture = constants.ArchitectureARM64
+	Default Architecture = "default"
 )
