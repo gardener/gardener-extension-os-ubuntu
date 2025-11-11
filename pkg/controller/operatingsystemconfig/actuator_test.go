@@ -261,17 +261,17 @@ var _ = Describe("Actuator", func() {
 `
 
 			It("should not return an error", func() {
-				extensionConfig := Config{ExtensionConfig: &v1alpha1.ExtensionConfig{APTConfig: v1alpha1.APTConfig{
+				extensionConfig := Config{ExtensionConfig: &v1alpha1.ExtensionConfig{APTConfig: &v1alpha1.APTConfig{
 					PreserveSourcesList: false,
 					Primary: []v1alpha1.APTArchive{
 						v1alpha1.APTArchive{
-							Arches: []string{"default"},
+							Arches: []v1alpha1.Architecture{v1alpha1.Default},
 							URI:    "http://packages.ubuntu-mirror.example.com/apt-mirror/ubuntu",
 						},
 					},
 					Security: []v1alpha1.APTArchive{
 						v1alpha1.APTArchive{
-							Arches: []string{"default"},
+							Arches: []v1alpha1.Architecture{v1alpha1.Default},
 							URI:    "http://packages.ubuntu-mirror.example.com/apt-mirror/ubuntu",
 						},
 					},

@@ -94,27 +94,29 @@ func (a *actuator) Restore(ctx context.Context, log logr.Logger, osc *extensions
 func (a *actuator) handleProvisionOSC(ctx context.Context, osc *extensionsv1alpha1.OperatingSystemConfig) (string, error) {
 
 	aptConfig := internal.APTConfigSnake{}
-	aptConfig.PreserveSourcesList = a.extensionConfig.APTConfig.PreserveSourcesList
-	if len(a.extensionConfig.APTConfig.Primary) > 0 {
-		for _, primary := range a.extensionConfig.APTConfig.Primary {
-			archive := internal.APTArchiveSnake{
-				Arches:    primary.Arches,
-				URI:       primary.URI,
-				Search:    primary.Search,
-				SearchDNS: primary.SearchDNS,
+	if a.extensionConfig.APTConfig != nil {
+		aptConfig.PreserveSourcesList = a.extensionConfig.APTConfig.PreserveSourcesList
+		if len(a.extensionConfig.APTConfig.Primary) > 0 {
+			for _, primary := range a.extensionConfig.APTConfig.Primary {
+				archive := internal.APTArchiveSnake{
+					Arches:    primary.Arches,
+					URI:       primary.URI,
+					Search:    primary.Search,
+					SearchDNS: primary.SearchDNS,
+				}
+				aptConfig.Primary = append(aptConfig.Primary, archive)
 			}
-			aptConfig.Primary = append(aptConfig.Primary, archive)
 		}
-	}
-	if len(a.extensionConfig.APTConfig.Security) > 0 {
-		for _, security := range a.extensionConfig.APTConfig.Security {
-			archive := internal.APTArchiveSnake{
-				Arches:    security.Arches,
-				URI:       security.URI,
-				Search:    security.Search,
-				SearchDNS: security.SearchDNS,
+		if len(a.extensionConfig.APTConfig.Security) > 0 {
+			for _, security := range a.extensionConfig.APTConfig.Security {
+				archive := internal.APTArchiveSnake{
+					Arches:    security.Arches,
+					URI:       security.URI,
+					Search:    security.Search,
+					SearchDNS: security.SearchDNS,
+				}
+				aptConfig.Security = append(aptConfig.Security, archive)
 			}
-			aptConfig.Security = append(aptConfig.Security, archive)
 		}
 	}
 

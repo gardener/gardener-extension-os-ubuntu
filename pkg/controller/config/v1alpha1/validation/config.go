@@ -58,21 +58,19 @@ func validateAPTConfig(config *configv1alpha1.APTConfig, fldPath *field.Path) fi
 func validateAPTArchive(config []configv1alpha1.APTArchive, fldPath *field.Path, archiveName string) field.ErrorList {
 	validArchitectureNames := sets.New(configv1alpha1.Default, configv1alpha1.AMD64, configv1alpha1.ARM64)
 	allErrs := field.ErrorList{}
-	if config != nil {
-		for _, configArchive := range config {
+	for _, configArchive := range config {
 
-			for _, arch := range configArchive.Arches {
-				if !slices.Contains(validArchitectureNames.UnsortedList(), arch) {
-					allErrs = append(allErrs, field.NotSupported(fldPath.Child("apt").Child(archiveName).Child("arches"), configArchive.Arches, validArchitectureNames.UnsortedList()))
-				}
+		for _, arch := range configArchive.Arches {
+			if !slices.Contains(validArchitectureNames.UnsortedList(), arch) {
+				allErrs = append(allErrs, field.NotSupported(fldPath.Child("apt").Child(archiveName).Child("arches"), configArchive.Arches, validArchitectureNames.UnsortedList()))
 			}
-			if !isValidURL(configArchive.URI) {
-				allErrs = append(allErrs, field.Invalid(fldPath.Child("apt").Child(archiveName).Child("uri"), configArchive.URI, "invalid URL"))
-			}
-			for _, search := range configArchive.Search {
-				if !isValidURL(search) {
-					allErrs = append(allErrs, field.Invalid(fldPath.Child("apt").Child(archiveName).Child("search"), search, "invalid URL"))
-				}
+		}
+		if !isValidURL(configArchive.URI) {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("apt").Child(archiveName).Child("uri"), configArchive.URI, "invalid URL"))
+		}
+		for _, search := range configArchive.Search {
+			if !isValidURL(search) {
+				allErrs = append(allErrs, field.Invalid(fldPath.Child("apt").Child(archiveName).Child("search"), search, "invalid URL"))
 			}
 		}
 	}
