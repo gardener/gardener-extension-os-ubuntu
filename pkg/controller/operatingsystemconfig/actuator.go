@@ -93,44 +93,6 @@ func (a *actuator) Restore(ctx context.Context, log logr.Logger, osc *extensions
 
 func (a *actuator) handleProvisionOSC(ctx context.Context, osc *extensionsv1alpha1.OperatingSystemConfig) (string, error) {
 
-	aptConfig := internal.APTConfigSnake{}
-	if a.extensionConfig.APTConfig != nil {
-		aptConfig.PreserveSourcesList = a.extensionConfig.APTConfig.PreserveSourcesList
-		if len(a.extensionConfig.APTConfig.Primary) > 0 {
-			for _, primary := range a.extensionConfig.APTConfig.Primary {
-				archive := internal.APTArchiveSnake{
-					Arches:    primary.Arches,
-					URI:       primary.URI,
-					Search:    primary.Search,
-					SearchDNS: primary.SearchDNS,
-				}
-				aptConfig.Primary = append(aptConfig.Primary, archive)
-			}
-		}
-		if len(a.extensionConfig.APTConfig.Security) > 0 {
-			for _, security := range a.extensionConfig.APTConfig.Security {
-				archive := internal.APTArchiveSnake{
-					Arches:    security.Arches,
-					URI:       security.URI,
-					Search:    security.Search,
-					SearchDNS: security.SearchDNS,
-				}
-				aptConfig.Security = append(aptConfig.Security, archive)
-			}
-		}
-	}
-
-	cloudInit := internal.APTCloudInit{APT: aptConfig}
-	aptData, err := json.Marshal(cloudInit)
-	if err != nil {
-		return "", err
-	}
-	yamlData, err := yaml.JSONToYAML(aptData)
-	if err != nil {
-		return "", err
-	}
-	aptString := string(yamlData)
-
 	writeFilesToDiskScript, err := operatingsystemconfig.FilesToDiskScript(ctx, a.client, osc.Namespace, osc.Spec.Files)
 	if err != nil {
 		return "", err
@@ -174,7 +136,6 @@ systemctl enable containerd && systemctl restart containerd
 	script = operatingsystemconfig.WrapProvisionOSCIntoOneshotScript(script)
 
 	cloudConfigHeader := "#cloud-config\n"
-	aptString = cloudConfigHeader + aptString
 
 	parts := []internal.FilePart{
 		{
@@ -183,12 +144,51 @@ systemctl enable containerd && systemctl restart containerd
 		},
 	}
 
-	if aptConfig.Primary != nil || aptConfig.Security != nil {
+	aptConfig := internal.APTConfig{}
+	if a.extensionConfig.APTConfig != nil {
+		aptConfig.PreserveSourcesList = a.extensionConfig.APTConfig.PreserveSourcesList
+		if len(a.extensionConfig.APTConfig.Primary) > 0 {
+			for _, primary := range a.extensionConfig.APTConfig.Primary {
+				archive := internal.APTArchive{
+					Arches:    primary.Arches,
+					URI:       primary.URI,
+					Search:    primary.Search,
+					SearchDNS: primary.SearchDNS,
+				}
+				aptConfig.Primary = append(aptConfig.Primary, archive)
+			}
+		}
+		if len(a.extensionConfig.APTConfig.Security) > 0 {
+			for _, security := range a.extensionConfig.APTConfig.Security {
+				archive := internal.APTArchive{
+					Arches:    security.Arches,
+					URI:       security.URI,
+					Search:    security.Search,
+					SearchDNS: security.SearchDNS,
+				}
+				aptConfig.Security = append(aptConfig.Security, archive)
+			}
+		}
+
+		cloudInit := internal.APTCloudInit{APT: aptConfig}
+		aptData, err := json.Marshal(cloudInit)
+		if err != nil {
+			return "", err
+		}
+		yamlData, err := yaml.JSONToYAML(aptData)
+		if err != nil {
+			return "", err
+		}
+		aptString := string(yamlData)
+
+		aptString = cloudConfigHeader + aptString
+
 		aptCloudConfig := internal.FilePart{
 			Type:    "text/cloud-config",
 			Content: aptString,
 		}
 		parts = append(parts, aptCloudConfig)
+
 	}
 
 	header := "#cloud-config-archive\n"
