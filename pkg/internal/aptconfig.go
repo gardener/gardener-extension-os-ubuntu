@@ -2,13 +2,15 @@ package internal
 
 import "github.com/gardener/gardener-extension-os-ubuntu/pkg/controller/config/v1alpha1"
 
-type APTConfigSnake struct {
-	PreserveSourcesList bool              `json:"preserve_sources_list"`
-	Primary             []APTArchiveSnake `json:"primary,omitempty"`
-	Security            []APTArchiveSnake `json:"security,omitempty"`
+// APTConfig with snake case is needed for cloud-init
+type APTConfig struct {
+	PreserveSourcesList bool         `json:"preserve_sources_list"`
+	Primary             []APTArchive `json:"primary,omitempty"`
+	Security            []APTArchive `json:"security,omitempty"`
 }
 
-type APTArchiveSnake struct {
+// APTArchive with snake case is needed for cloud-init
+type APTArchive struct {
 	Arches    []v1alpha1.Architecture `json:"arches,omitempty"`
 	URI       string                  `json:"uri,omitempty"`
 	Search    []string                `json:"search,omitempty"`
@@ -16,7 +18,7 @@ type APTArchiveSnake struct {
 }
 
 type APTCloudInit struct {
-	APT APTConfigSnake `json:"apt,omitempty"`
+	APT APTConfig `json:"apt,omitempty"`
 }
 
 type FilePart struct {
