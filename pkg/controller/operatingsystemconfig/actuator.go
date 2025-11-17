@@ -137,8 +137,6 @@ systemctl enable docker && systemctl restart docker
 
 	script = operatingsystemconfig.WrapProvisionOSCIntoOneshotScript(script)
 
-	cloudConfigHeader := "#cloud-config\n"
-
 	parts := []internal.FilePart{
 		{
 			Type:    "text/x-shellscript",
@@ -146,7 +144,29 @@ systemctl enable docker && systemctl restart docker
 		},
 	}
 
+	aptConfig, err := a.createAPTCloudConfig()
+	if err != nil {
+		return "", err
+	}
+	if a.extensionConfig.APTConfig != nil {
+		parts = append(parts, aptConfig)
+	}
+
+	header := "#cloud-config-archive\n"
+	yamlBody, err := yaml.Marshal(parts)
+	if err != nil {
+		return "", fmt.Errorf("error marshalling archives: %v", err)
+	}
+	archive := header + string(yamlBody)
+
+	return archive, nil
+}
+
+func (a *actuator) createAPTCloudConfig() (internal.FilePart, error) {
 	aptConfig := internal.APTConfig{}
+	aptCloudConfig := internal.FilePart{
+		Type: "text/cloud-config",
+	}
 	if a.extensionConfig.APTConfig != nil {
 		aptConfig.PreserveSourcesList = a.extensionConfig.APTConfig.PreserveSourcesList
 		for _, primary := range a.extensionConfig.APTConfig.Primary {
@@ -171,32 +191,20 @@ systemctl enable docker && systemctl restart docker
 		cloudInit := internal.APTCloudInit{APT: aptConfig}
 		aptData, err := json.Marshal(cloudInit)
 		if err != nil {
-			return "", err
+			return aptCloudConfig, fmt.Errorf("failed to marshal cloud-init apt config: %w", err)
 		}
 		yamlData, err := yaml.JSONToYAML(aptData)
 		if err != nil {
-			return "", err
+			return aptCloudConfig, fmt.Errorf("failed to convert cloud-init apt config from json to yaml: %w", err)
 		}
 		aptString := string(yamlData)
 
+		cloudConfigHeader := "#cloud-config\n"
 		aptString = cloudConfigHeader + aptString
 
-		aptCloudConfig := internal.FilePart{
-			Type:    "text/cloud-config",
-			Content: aptString,
-		}
-		parts = append(parts, aptCloudConfig)
-
+		aptCloudConfig.Content = aptString
 	}
-
-	header := "#cloud-config-archive\n"
-	yamlBody, err := yaml.Marshal(parts)
-	if err != nil {
-		return "", fmt.Errorf("error marshalling archives: %v", err)
-	}
-	archive := header + string(yamlBody)
-
-	return archive, nil
+	return aptCloudConfig, nil
 }
 
 func (a *actuator) generateNTPConfig() (string, error) {
