@@ -147,27 +147,23 @@ systemctl enable containerd && systemctl restart containerd
 	aptConfig := internal.APTConfig{}
 	if a.extensionConfig.APTConfig != nil {
 		aptConfig.PreserveSourcesList = a.extensionConfig.APTConfig.PreserveSourcesList
-		if len(a.extensionConfig.APTConfig.Primary) > 0 {
-			for _, primary := range a.extensionConfig.APTConfig.Primary {
-				archive := internal.APTArchive{
-					Arches:    primary.Arches,
-					URI:       primary.URI,
-					Search:    primary.Search,
-					SearchDNS: primary.SearchDNS,
-				}
-				aptConfig.Primary = append(aptConfig.Primary, archive)
+		for _, primary := range a.extensionConfig.APTConfig.Primary {
+			archive := internal.APTArchive{
+				Arches:    primary.Arches,
+				URI:       primary.URI,
+				Search:    primary.Search,
+				SearchDNS: primary.SearchDNS,
 			}
+			aptConfig.Primary = append(aptConfig.Primary, archive)
 		}
-		if len(a.extensionConfig.APTConfig.Security) > 0 {
-			for _, security := range a.extensionConfig.APTConfig.Security {
-				archive := internal.APTArchive{
-					Arches:    security.Arches,
-					URI:       security.URI,
-					Search:    security.Search,
-					SearchDNS: security.SearchDNS,
-				}
-				aptConfig.Security = append(aptConfig.Security, archive)
+		for _, security := range a.extensionConfig.APTConfig.Security {
+			archive := internal.APTArchive{
+				Arches:    security.Arches,
+				URI:       security.URI,
+				Search:    security.Search,
+				SearchDNS: security.SearchDNS,
 			}
+			aptConfig.Security = append(aptConfig.Security, archive)
 		}
 
 		cloudInit := internal.APTCloudInit{APT: aptConfig}
