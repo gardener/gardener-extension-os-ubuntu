@@ -104,8 +104,7 @@ EOF
 chmod 0644 /etc/cloud/cloud.cfg.d/custom-networking.cfg
 ` + writeFilesToDiskScript + `
 ` + writeUnitsToDiskScript + `
-until apt-get update -qq && apt-get install --no-upgrade -qqy containerd runc docker.io socat nfs-common logrotate jq policykit-1; do sleep 1; done
-ln -s /usr/bin/docker /bin/docker
+until apt-get update -qq && apt-get install --no-upgrade -qqy containerd runc socat nfs-common logrotate jq policykit-1; do sleep 1; done
 
 if [ ! -s /etc/containerd/config.toml ]; then
   mkdir -p /etc/containerd/
@@ -123,7 +122,6 @@ chmod 0644 /etc/systemd/system/containerd.service.d/11-exec_config.conf
 ` + disableUnattendedUpgradesScript(a.extensionConfig.DisableUnattendedUpgrades) + `
 systemctl daemon-reload
 systemctl enable containerd && systemctl restart containerd
-systemctl enable docker && systemctl restart docker
 `
 
 	for _, unit := range osc.Spec.Units {

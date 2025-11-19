@@ -81,8 +81,7 @@ EOF
 cat << EOF | base64 -d > "/etc/systemd/system/some-unit"
 Zm9v
 EOF
-until apt-get update -qq && apt-get install --no-upgrade -qqy containerd runc docker.io socat nfs-common logrotate jq policykit-1; do sleep 1; done
-ln -s /usr/bin/docker /bin/docker
+until apt-get update -qq && apt-get install --no-upgrade -qqy containerd runc socat nfs-common logrotate jq policykit-1; do sleep 1; done
 
 if [ ! -s /etc/containerd/config.toml ]; then
   mkdir -p /etc/containerd/
@@ -100,7 +99,6 @@ chmod 0644 /etc/systemd/system/containerd.service.d/11-exec_config.conf
 
 systemctl daemon-reload
 systemctl enable containerd && systemctl restart containerd
-systemctl enable docker && systemctl restart docker
 systemctl enable 'some-unit' && systemctl restart --no-block 'some-unit'
 
 
@@ -144,8 +142,7 @@ EOF
 cat << EOF | base64 -d > "/etc/systemd/system/some-unit"
 Zm9v
 EOF
-until apt-get update -qq && apt-get install --no-upgrade -qqy containerd runc docker.io socat nfs-common logrotate jq policykit-1; do sleep 1; done
-ln -s /usr/bin/docker /bin/docker
+until apt-get update -qq && apt-get install --no-upgrade -qqy containerd runc socat nfs-common logrotate jq policykit-1; do sleep 1; done
 
 if [ ! -s /etc/containerd/config.toml ]; then
   mkdir -p /etc/containerd/
@@ -169,7 +166,6 @@ chmod 0644 /etc/apt/apt.conf.d/99-auto-upgrades.conf
 
 systemctl daemon-reload
 systemctl enable containerd && systemctl restart containerd
-systemctl enable docker && systemctl restart docker
 systemctl enable 'some-unit' && systemctl restart --no-block 'some-unit'
 
 
