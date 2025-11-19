@@ -142,14 +142,13 @@ systemctl enable containerd && systemctl restart containerd
 		},
 	}
 
-	aptConfig, err := a.createAPTCloudConfig()
-	if err != nil {
-		return "", err
-	}
 	if a.extensionConfig.APTConfig != nil {
+		aptConfig, err := a.createAPTCloudConfig()
+		if err != nil {
+			return "", err
+		}
 		parts = append(parts, aptConfig)
 	}
-
 	header := "#cloud-config-archive\n"
 	yamlBody, err := yaml.Marshal(parts)
 	if err != nil {
@@ -186,21 +185,16 @@ func (a *actuator) createAPTCloudConfig() (internal.FilePart, error) {
 			aptConfig.Security = append(aptConfig.Security, archive)
 		}
 
-		cloudInit := internal.APTCloudInit{APT: aptConfig}
-		aptData, err := json.Marshal(cloudInit)
+		cloudInitApt := internal.APTCloudInit{APT: aptConfig}
+		cloudInitAptJson, err := json.Marshal(cloudInitApt)
 		if err != nil {
 			return aptCloudConfig, fmt.Errorf("failed to marshal cloud-init apt config: %w", err)
 		}
-		yamlData, err := yaml.JSONToYAML(aptData)
+		cloudInitAptYaml, err := yaml.JSONToYAML(cloudInitAptJson)
 		if err != nil {
 			return aptCloudConfig, fmt.Errorf("failed to convert cloud-init apt config from json to yaml: %w", err)
 		}
-		aptString := string(yamlData)
-
-		cloudConfigHeader := "#cloud-config\n"
-		aptString = cloudConfigHeader + aptString
-
-		aptCloudConfig.Content = aptString
+		aptCloudConfig.Content = "#cloud-config\n" + string(cloudInitAptYaml)
 	}
 	return aptCloudConfig, nil
 }
