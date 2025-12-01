@@ -1,6 +1,7 @@
 package v1alpha1
 
 import (
+	"github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -22,6 +23,9 @@ type ExtensionConfig struct {
 	// DisableUnattendedUpgrades to disable unattended upgrades in ubuntu
 	// +optional
 	DisableUnattendedUpgrades *bool `json:"disableUnattendedUpgrades,omitempty"`
+	// Mirror to set custom Ubuntu mirror
+	// +optional
+	APTConfig *APTConfig `json:"apt,omitempty"`
 }
 
 // NTPConfig General NTP Config for either systemd-timesyncd or ntpd
@@ -38,3 +42,24 @@ type NTPDConfig struct {
 	// Servers List of ntp servers
 	Servers []string `json:"servers"`
 }
+
+type APTConfig struct {
+	PreserveSourcesList bool         `json:"preserveSourcesList,omitempty"`
+	Primary             []APTArchive `json:"primary,omitempty"`
+	Security            []APTArchive `json:"security,omitempty"`
+}
+
+type APTArchive struct {
+	Arches    []Architecture `json:"arches,omitempty"`
+	URI       string         `json:"uri,omitempty"`
+	Search    []string       `json:"search,omitempty"`
+	SearchDNS bool           `json:"searchDNS,omitempty"`
+}
+
+type Architecture string
+
+const (
+	AMD64   Architecture = constants.ArchitectureAMD64
+	ARM64   Architecture = constants.ArchitectureARM64
+	Default Architecture = "default"
+)

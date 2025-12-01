@@ -60,4 +60,25 @@ var _ = Describe("ExtensionConfig validation", func() {
 		Expect(errs[0].Field).To(Equal("ntpd"))
 	})
 
+	It("should succeed with a valid architecture, URI and search for primary apt mirror", func() {
+		config.APTConfig = &configv1alpha1.APTConfig{Primary: []configv1alpha1.APTArchive{{
+			Arches:    []configv1alpha1.Architecture{configv1alpha1.ARM64},
+			URI:       "http://packages.ubuntu-mirror.example.com/apt-mirror/ubuntu",
+			Search:    []string{"http://archive.ubuntu.com/ubuntu/"},
+			SearchDNS: false,
+		}}}
+		errs := ValidateExtensionConfig(config)
+		Expect(errs).To(BeEmpty())
+	})
+
+	It("should fail with an invalid URI and invalid search for primary apt mirror", func() {
+		config.APTConfig = &configv1alpha1.APTConfig{Primary: []configv1alpha1.APTArchive{{
+			Arches:    []configv1alpha1.Architecture{configv1alpha1.ARM64},
+			URI:       "packages.ubuntu-mirror.example.com/apt-mirror/ubuntu",
+			Search:    []string{"archive.ubuntu.com/ubuntu/"},
+			SearchDNS: false,
+		}}}
+		errs := ValidateExtensionConfig(config)
+		Expect(errs).To(HaveLen(2))
+	})
 })

@@ -15,11 +15,14 @@ import (
 	"github.com/gardener/gardener/extensions/pkg/controller/operatingsystemconfig"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/go-logr/logr"
+	"k8s.io/apimachinery/pkg/util/json"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/yaml"
 
 	configv1alpha1 "github.com/gardener/gardener-extension-os-ubuntu/pkg/controller/config/v1alpha1"
+	"github.com/gardener/gardener-extension-os-ubuntu/pkg/internal"
 )
 
 //go:embed templates/ntp-config.conf.tpl
@@ -89,6 +92,7 @@ func (a *actuator) Restore(ctx context.Context, log logr.Logger, osc *extensions
 }
 
 func (a *actuator) handleProvisionOSC(ctx context.Context, osc *extensionsv1alpha1.OperatingSystemConfig) (string, error) {
+
 	writeFilesToDiskScript, err := operatingsystemconfig.FilesToDiskScript(ctx, a.client, osc.Namespace, osc.Spec.Files)
 	if err != nil {
 		return "", err
@@ -131,7 +135,68 @@ systemctl enable containerd && systemctl restart containerd
 
 	script = operatingsystemconfig.WrapProvisionOSCIntoOneshotScript(script)
 
-	return script, nil
+	parts := []internal.FilePart{
+		{
+			Type:    "text/x-shellscript",
+			Content: script,
+		},
+	}
+
+	if a.extensionConfig.APTConfig != nil {
+		aptConfig, err := a.createAPTCloudConfig()
+		if err != nil {
+			return "", err
+		}
+		parts = append(parts, aptConfig)
+	}
+	header := "#cloud-config-archive\n"
+	yamlBody, err := yaml.Marshal(parts)
+	if err != nil {
+		return "", fmt.Errorf("error marshalling archives: %v", err)
+	}
+	archive := header + string(yamlBody)
+
+	return archive, nil
+}
+
+func (a *actuator) createAPTCloudConfig() (internal.FilePart, error) {
+	aptConfig := internal.APTConfig{}
+	aptCloudConfig := internal.FilePart{
+		Type: "text/cloud-config",
+	}
+	if a.extensionConfig.APTConfig != nil {
+		aptConfig.PreserveSourcesList = a.extensionConfig.APTConfig.PreserveSourcesList
+		for _, primary := range a.extensionConfig.APTConfig.Primary {
+			archive := internal.APTArchive{
+				Arches:    primary.Arches,
+				URI:       primary.URI,
+				Search:    primary.Search,
+				SearchDNS: primary.SearchDNS,
+			}
+			aptConfig.Primary = append(aptConfig.Primary, archive)
+		}
+		for _, security := range a.extensionConfig.APTConfig.Security {
+			archive := internal.APTArchive{
+				Arches:    security.Arches,
+				URI:       security.URI,
+				Search:    security.Search,
+				SearchDNS: security.SearchDNS,
+			}
+			aptConfig.Security = append(aptConfig.Security, archive)
+		}
+
+		cloudInitApt := internal.APTCloudInit{APT: aptConfig}
+		cloudInitAptJson, err := json.Marshal(cloudInitApt)
+		if err != nil {
+			return aptCloudConfig, fmt.Errorf("failed to marshal cloud-init apt config: %w", err)
+		}
+		cloudInitAptYaml, err := yaml.JSONToYAML(cloudInitAptJson)
+		if err != nil {
+			return aptCloudConfig, fmt.Errorf("failed to convert cloud-init apt config from json to yaml: %w", err)
+		}
+		aptCloudConfig.Content = "#cloud-config\n" + string(cloudInitAptYaml)
+	}
+	return aptCloudConfig, nil
 }
 
 func (a *actuator) generateNTPConfig() (string, error) {

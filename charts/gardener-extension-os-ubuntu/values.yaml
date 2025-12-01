@@ -12,6 +12,20 @@ config: {}
 #    ntpd:
 #      servers:
 #        - ptbtime1.ptb.de
+#  apt:
+#    preserveSourcesList: false
+#    primary:
+#      - arches: [ default ]
+#        uri: http://packages.ubuntu-mirror.example.com/apt-mirror/ubuntu
+#        search:
+#          - http://packages.ubuntu-mirror.example.com/apt-mirror/ubuntu
+#        searchDNS: true
+#    security:
+#      - arches: [ default ]
+#        uri: http://packages.ubuntu-mirror.example.com/apt-mirror/ubuntu
+#        search:
+#          - http://packages.ubuntu-mirror.example.com/apt-mirror/ubuntu
+#        searchDNS: true
 
 
 vpa:
