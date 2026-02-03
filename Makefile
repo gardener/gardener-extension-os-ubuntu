@@ -73,6 +73,14 @@ clean:
 	@$(shell find ./example -type f -name "controller-registration.yaml" -exec rm '{}' \;)
 	@bash $(GARDENER_HACK_DIR)/clean.sh ./cmd/... ./pkg/...
 
+.PHONY: add-license-headers
+add-license-headers: $(GO_ADD_LICENSE)
+	@REPO_ROOT=$(REPO_ROOT) bash $(GARDENER_HACK_DIR)/add-license-header.sh
+
+.PHONY: check-license-headers
+check-license-headers: $(GO_ADD_LICENSE)
+	@REPO_ROOT=$(REPO_ROOT) bash $(GARDENER_HACK_DIR)/check-license-header.sh
+
 .PHONY: check-generate
 check-generate:
 	@bash $(GARDENER_HACK_DIR)/check-generate.sh $(REPO_ROOT)
@@ -112,7 +120,7 @@ test-clean:
 	@bash $(GARDENER_HACK_DIR)/test-cover-clean.sh
 
 .PHONY: verify
-verify: check format sast test
+verify: check format sast test check-license-headers
 
 .PHONY: verify-extended
-verify-extended: check-generate check format sast-report test-cov test-clean
+verify-extended: check-generate check format sast-report test-cov test-clean check-license-headers

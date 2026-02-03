@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: SAP SE or an SAP affiliate company and Gardener contributors
+#
+# SPDX-License-Identifier: Apache-2.0
+
 # Ensure that if GOPATH is set, the GOPATH/{bin,pkg} directory exists. This might not be the case in CI.
 # As we will create a symlink against the bin folder we need to make sure that the bin directory is
 # present in the GOPATH.
