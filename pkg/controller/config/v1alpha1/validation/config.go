@@ -34,7 +34,6 @@ func ValidateExtensionConfig(config *configv1alpha1.ExtensionConfig) field.Error
 		if config.NTP.NTPD != nil {
 			allErrs = append(allErrs, validateNTPDConfig(config.NTP.NTPD, rootPath.Child("ntpd"))...)
 		}
-
 	}
 
 	if config.APTConfig != nil {
@@ -63,7 +62,6 @@ func validateAPTArchive(config []configv1alpha1.APTArchive, fldPath *field.Path,
 	validArchitectureNames := sets.New(configv1alpha1.Default, configv1alpha1.AMD64, configv1alpha1.ARM64)
 	allErrs := field.ErrorList{}
 	for _, configArchive := range config {
-
 		for _, arch := range configArchive.Arches {
 			if !slices.Contains(validArchitectureNames.UnsortedList(), arch) {
 				allErrs = append(allErrs, field.NotSupported(fldPath.Child("apt").Child(archiveName).Child("arches"), configArchive.Arches, validArchitectureNames.UnsortedList()))

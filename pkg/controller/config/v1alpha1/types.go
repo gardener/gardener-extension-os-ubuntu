@@ -21,6 +21,7 @@ const (
 // ExtensionConfig is the configuration for the os-ubuntu extension.
 type ExtensionConfig struct {
 	metav1.TypeMeta `json:",inline"`
+
 	// NTP to configure either systemd-timesyncd or ntpd
 	// +optional
 	NTP *NTPConfig `json:"ntp,omitempty"`
