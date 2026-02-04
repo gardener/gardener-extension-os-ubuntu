@@ -113,7 +113,7 @@ func NewControllerCommand(ctx context.Context) *cobra.Command {
 			ctrlOpts.Completed().Apply(&operatingsystemconfig.DefaultAddOptions.Controller)
 			heartbeatCtrlOpts.Completed().Apply(&heartbeat.DefaultAddOptions)
 
-			reconcileOpts.Completed().Apply(&operatingsystemconfig.DefaultAddOptions.IgnoreOperationAnnotation, ptr.To(extensionsv1alpha1.ExtensionClassShoot))
+			reconcileOpts.Completed().Apply(&operatingsystemconfig.DefaultAddOptions.IgnoreOperationAnnotation, ptr.To([]extensionsv1alpha1.ExtensionClass{extensionsv1alpha1.ExtensionClassShoot}))
 
 			ubuntuOpts.Completed().Apply(&operatingsystemconfig.DefaultAddOptions.ExtensionConfig)
 
