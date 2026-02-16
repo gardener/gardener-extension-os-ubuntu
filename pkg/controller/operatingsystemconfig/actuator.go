@@ -60,7 +60,7 @@ func NewActuator(mgr manager.Manager, extensionConfig Config) operatingsystemcon
 	}
 }
 
-func (a *actuator) Reconcile(ctx context.Context, log logr.Logger, osc *extensionsv1alpha1.OperatingSystemConfig) ([]byte, []extensionsv1alpha1.Unit, []extensionsv1alpha1.File, *extensionsv1alpha1.InPlaceUpdatesStatus, error) {
+func (a *actuator) Reconcile(ctx context.Context, _ logr.Logger, osc *extensionsv1alpha1.OperatingSystemConfig) ([]byte, []extensionsv1alpha1.Unit, []extensionsv1alpha1.File, *extensionsv1alpha1.InPlaceUpdatesStatus, error) {
 	switch purpose := osc.Spec.Purpose; purpose {
 	case extensionsv1alpha1.OperatingSystemConfigPurposeProvision:
 		userData, err := a.handleProvisionOSC(ctx, osc)
@@ -92,7 +92,6 @@ func (a *actuator) Restore(ctx context.Context, log logr.Logger, osc *extensions
 }
 
 func (a *actuator) handleProvisionOSC(ctx context.Context, osc *extensionsv1alpha1.OperatingSystemConfig) (string, error) {
-
 	writeFilesToDiskScript, err := operatingsystemconfig.FilesToDiskScript(ctx, a.client, osc.Namespace, osc.Spec.Files)
 	if err != nil {
 		return "", err
