@@ -9,7 +9,7 @@ spec:
     extension:
       helm:
         ociRepository:
-          ref: europe-docker.pkg.dev/gardener-project/public/charts/gardener/extensions/os-ubuntu:v1.36.0
+          ref: europe-docker.pkg.dev/gardener-project/public/charts/gardener/extensions/os-ubuntu:v1.37.0-dev
   resources:
   - kind: OperatingSystemConfig
     type: ubuntu
