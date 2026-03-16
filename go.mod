@@ -3,6 +3,7 @@ module github.com/gardener/gardener-extension-os-ubuntu
 go 1.25.6
 
 require (
+	github.com/Masterminds/sprig/v3 v3.3.0
 	github.com/gardener/gardener v1.138.0
 	github.com/gardener/gardener/pkg/apis v1.138.0
 	github.com/go-logr/logr v1.4.3
@@ -25,7 +26,6 @@ require (
 	github.com/BurntSushi/toml v1.5.0 // indirect
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Masterminds/semver/v3 v3.4.0 // indirect
-	github.com/Masterminds/sprig/v3 v3.3.0 // indirect
 	github.com/PaesslerAG/gval v1.2.4 // indirect
 	github.com/PaesslerAG/jsonpath v0.1.2-0.20240726212847-3a740cf7976f // indirect
 	github.com/VictoriaMetrics/VictoriaLogs v1.36.2-0.20251008164716-21c0fb3de84d // indirect
