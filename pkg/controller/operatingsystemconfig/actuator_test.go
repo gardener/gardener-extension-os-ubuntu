@@ -7,6 +7,7 @@ package operatingsystemconfig_test
 import (
 	"context"
 	_ "embed"
+	"path/filepath"
 
 	"github.com/gardener/gardener/extensions/pkg/controller/operatingsystemconfig"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
@@ -14,6 +15,7 @@ import (
 	"github.com/go-logr/logr"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gstruct"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -335,6 +337,46 @@ fi
 					Path:        "/opt/gardener/bin/install-ntp.sh",
 					Content:     extensionsv1alpha1.FileContent{Inline: &extensionsv1alpha1.FileContentInline{Data: ntpInstallScript}},
 					Permissions: ptr.To[uint32](0744),
+				}))
+			})
+			It("should enable ntpd service", func() {
+				extensionConfig := Config{
+					ExtensionConfig: &v1alpha1.ExtensionConfig{
+						NTP: &v1alpha1.NTPConfig{
+							Daemon: v1alpha1.NTPD,
+							NTPD: &v1alpha1.NTPDConfig{
+								Servers:    []string{"foo.bar", "bar.foo"},
+								Interfaces: []string{"dev1", "dev2"},
+							},
+						},
+					},
+				}
+				actuator = NewActuator(mgr, extensionConfig)
+				userData, extensionUnits, extensionFiles, _, err := actuator.Reconcile(ctx, log, osc)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(userData).To(BeEmpty())
+				Expect(extensionUnits).To(ContainElement(gstruct.MatchFields(gstruct.IgnoreExtras, gstruct.Fields{
+					"Name": Equal("install-ntp-client.service"),
+				})))
+				Expect(extensionFiles).To(ContainElement(extensionsv1alpha1.File{
+					Path:        filepath.Join(string(filepath.Separator), "etc", "ntp.conf"),
+					Permissions: ptr.To[uint32](0644),
+					Content: extensionsv1alpha1.FileContent{
+						Inline: &extensionsv1alpha1.FileContentInline{
+							Data: `
+server foo.bar iburst
+server bar.foo iburst
+
+driftfile /var/lib/ntp/ntp.drift
+restrict default nomodify nopeer noquery notrap limited kod
+restrict 127.0.0.1
+restrict [::1]
+
+interface ignore wildcard
+interface listen 127.0.0.1
+interface listen dev1 dev2`,
+						},
+					},
 				}))
 			})
 			It("should not return an error with ntp instead of systemd-timesyncd", func() {
