@@ -12,6 +12,7 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/Masterminds/sprig/v3"
 	"github.com/gardener/gardener/extensions/pkg/controller/operatingsystemconfig"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/go-logr/logr"
@@ -46,7 +47,7 @@ type Config struct {
 
 func init() {
 	var err error
-	ntpConfigTemplate, err = template.New("ntp-config").Parse(ntpConfigTemplateContent)
+	ntpConfigTemplate, err = template.New("ntp-config").Funcs(sprig.TxtFuncMap()).Parse(ntpConfigTemplateContent)
 	if err != nil {
 		panic(fmt.Errorf("failed to parse NTP config template: %w", err))
 	}
