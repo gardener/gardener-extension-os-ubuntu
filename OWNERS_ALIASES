@@ -2,16 +2,24 @@
 
 aliases:
   gardener-extension-os-ubuntu-reviewers:
-  - dergeberl
-  - MrBatschner
-  - nschad
-  - robinschneider
-  - Roncossek
-  - Vincinator
+    - Duciwuci
+    - einfachnuralex
+    - hown3d
+    - JuliusSte
+    - Kumm-Kai
+    - maboehm
+    - MichaelEischer
+    - rgroemmer
+    - robinschneider
+    - timebertt
+    - lukasjarosch
+    - crigertg
+    - cerealsnow
+    - jastBytes
   gardener-extension-os-ubuntu-approvers:
-  - dergeberl
-  - MrBatschner
-  - nschad
-  - robinschneider
-  - Roncossek
-  - Vincinator
+    - dergeberl
+    - nschad
+    - ftl
+    - xoxys
+    - aniruddha2000
+    - breuerfelix
