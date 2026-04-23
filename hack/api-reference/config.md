@@ -4,20 +4,24 @@
 <a href="#config.ubuntu.os.extensions.gardener.cloud%2fv1alpha1">config.ubuntu.os.extensions.gardener.cloud/v1alpha1</a>
 </li>
 </ul>
+
 <h2 id="config.ubuntu.os.extensions.gardener.cloud/v1alpha1">config.ubuntu.os.extensions.gardener.cloud/v1alpha1</h2>
 <p>
-<p>Package v1alpha1 contains the API for configuring the os-ubuntu extension.</p>
+
 </p>
-Resource Types:
-<ul></ul>
-<h3 id="config.ubuntu.os.extensions.gardener.cloud/v1alpha1.APTArchive">APTArchive
+
+<h3 id="aptarchive">APTArchive
 </h3>
+
+
 <p>
-(<em>Appears on:</em>
-<a href="#config.ubuntu.os.extensions.gardener.cloud/v1alpha1.APTConfig">APTConfig</a>)
+(<em>Appears on:</em><a href="#aptconfig">APTConfig</a>)
 </p>
+
 <p>
+
 </p>
+
 <table>
 <thead>
 <tr>
@@ -26,16 +30,16 @@ Resource Types:
 </tr>
 </thead>
 <tbody>
+
 <tr>
 <td>
 <code>arches</code></br>
 <em>
-<a href="#config.ubuntu.os.extensions.gardener.cloud/v1alpha1.Architecture">
-[]Architecture
-</a>
+<a href="#architecture">Architecture</a> array
 </em>
 </td>
 <td>
+<p></p>
 </td>
 </tr>
 <tr>
@@ -46,38 +50,48 @@ string
 </em>
 </td>
 <td>
+<p></p>
 </td>
 </tr>
 <tr>
 <td>
 <code>search</code></br>
 <em>
-[]string
+string array
 </em>
 </td>
 <td>
+<p></p>
 </td>
 </tr>
 <tr>
 <td>
 <code>searchDNS</code></br>
 <em>
-bool
+boolean
 </em>
 </td>
 <td>
+<p></p>
 </td>
 </tr>
+
 </tbody>
 </table>
-<h3 id="config.ubuntu.os.extensions.gardener.cloud/v1alpha1.APTConfig">APTConfig
+
+
+<h3 id="aptconfig">APTConfig
 </h3>
+
+
 <p>
-(<em>Appears on:</em>
-<a href="#config.ubuntu.os.extensions.gardener.cloud/v1alpha1.ExtensionConfig">ExtensionConfig</a>)
+(<em>Appears on:</em><a href="#extensionconfig">ExtensionConfig</a>)
 </p>
+
 <p>
+
 </p>
+
 <table>
 <thead>
 <tr>
@@ -86,63 +100,81 @@ bool
 </tr>
 </thead>
 <tbody>
+
 <tr>
 <td>
 <code>preserveSourcesList</code></br>
 <em>
-bool
+boolean
 </em>
 </td>
 <td>
+<p></p>
 </td>
 </tr>
 <tr>
 <td>
 <code>primary</code></br>
 <em>
-<a href="#config.ubuntu.os.extensions.gardener.cloud/v1alpha1.APTArchive">
-[]APTArchive
-</a>
+<a href="#aptarchive">APTArchive</a> array
 </em>
 </td>
 <td>
+<p></p>
 </td>
 </tr>
 <tr>
 <td>
 <code>security</code></br>
 <em>
-<a href="#config.ubuntu.os.extensions.gardener.cloud/v1alpha1.APTArchive">
-[]APTArchive
-</a>
+<a href="#aptarchive">APTArchive</a> array
 </em>
 </td>
 <td>
+<p></p>
 </td>
 </tr>
+
 </tbody>
 </table>
-<h3 id="config.ubuntu.os.extensions.gardener.cloud/v1alpha1.Architecture">Architecture
-(<code>string</code> alias)</p></h3>
-<p>
-(<em>Appears on:</em>
-<a href="#config.ubuntu.os.extensions.gardener.cloud/v1alpha1.APTArchive">APTArchive</a>)
-</p>
-<p>
-</p>
-<h3 id="config.ubuntu.os.extensions.gardener.cloud/v1alpha1.Daemon">Daemon
-(<code>string</code> alias)</p></h3>
-<p>
-(<em>Appears on:</em>
-<a href="#config.ubuntu.os.extensions.gardener.cloud/v1alpha1.NTPConfig">NTPConfig</a>)
-</p>
-<p>
-</p>
-<h3 id="config.ubuntu.os.extensions.gardener.cloud/v1alpha1.ExtensionConfig">ExtensionConfig
+
+
+<h3 id="architecture">Architecture
 </h3>
+<p><em>Underlying type: string</em></p>
+
+
 <p>
-<p>ExtensionConfig is the configuration for the os-ubuntu extension.</p>
+(<em>Appears on:</em><a href="#aptarchive">APTArchive</a>)
 </p>
+
+<p>
+
+</p>
+
+
+<h3 id="daemon">Daemon
+</h3>
+<p><em>Underlying type: string</em></p>
+
+
+<p>
+(<em>Appears on:</em><a href="#ntpconfig">NTPConfig</a>)
+</p>
+
+<p>
+
+</p>
+
+
+<h3 id="extensionconfig">ExtensionConfig
+</h3>
+
+
+<p>
+ExtensionConfig is the configuration for the os-ubuntu extension.
+</p>
+
 <table>
 <thead>
 <tr>
@@ -151,13 +183,12 @@ bool
 </tr>
 </thead>
 <tbody>
+
 <tr>
 <td>
 <code>ntp</code></br>
 <em>
-<a href="#config.ubuntu.os.extensions.gardener.cloud/v1alpha1.NTPConfig">
-NTPConfig
-</a>
+<a href="#ntpconfig">NTPConfig</a>
 </em>
 </td>
 <td>
@@ -169,7 +200,7 @@ NTPConfig
 <td>
 <code>disableUnattendedUpgrades</code></br>
 <em>
-bool
+boolean
 </em>
 </td>
 <td>
@@ -181,9 +212,7 @@ bool
 <td>
 <code>apt</code></br>
 <em>
-<a href="#config.ubuntu.os.extensions.gardener.cloud/v1alpha1.APTConfig">
-APTConfig
-</a>
+<a href="#aptconfig">APTConfig</a>
 </em>
 </td>
 <td>
@@ -191,17 +220,23 @@ APTConfig
 <p>Mirror to set custom Ubuntu mirror</p>
 </td>
 </tr>
+
 </tbody>
 </table>
-<h3 id="config.ubuntu.os.extensions.gardener.cloud/v1alpha1.NTPConfig">NTPConfig
+
+
+<h3 id="ntpconfig">NTPConfig
 </h3>
+
+
 <p>
-(<em>Appears on:</em>
-<a href="#config.ubuntu.os.extensions.gardener.cloud/v1alpha1.ExtensionConfig">ExtensionConfig</a>)
+(<em>Appears on:</em><a href="#extensionconfig">ExtensionConfig</a>)
 </p>
+
 <p>
-<p>NTPConfig General NTP Config for either systemd-timesyncd or ntpd</p>
+NTPConfig General NTP Config for either systemd-timesyncd or ntpd
 </p>
+
 <table>
 <thead>
 <tr>
@@ -210,13 +245,12 @@ APTConfig
 </tr>
 </thead>
 <tbody>
+
 <tr>
 <td>
 <code>daemon</code></br>
 <em>
-<a href="#config.ubuntu.os.extensions.gardener.cloud/v1alpha1.Daemon">
-Daemon
-</a>
+<a href="#daemon">Daemon</a>
 </em>
 </td>
 <td>
@@ -227,9 +261,7 @@ Daemon
 <td>
 <code>ntpd</code></br>
 <em>
-<a href="#config.ubuntu.os.extensions.gardener.cloud/v1alpha1.NTPDConfig">
-NTPDConfig
-</a>
+<a href="#ntpdconfig">NTPDConfig</a>
 </em>
 </td>
 <td>
@@ -237,17 +269,23 @@ NTPDConfig
 <p>NTPD to configure the ntpd client</p>
 </td>
 </tr>
+
 </tbody>
 </table>
-<h3 id="config.ubuntu.os.extensions.gardener.cloud/v1alpha1.NTPDConfig">NTPDConfig
+
+
+<h3 id="ntpdconfig">NTPDConfig
 </h3>
+
+
 <p>
-(<em>Appears on:</em>
-<a href="#config.ubuntu.os.extensions.gardener.cloud/v1alpha1.NTPConfig">NTPConfig</a>)
+(<em>Appears on:</em><a href="#ntpconfig">NTPConfig</a>)
 </p>
+
 <p>
-<p>NTPDConfig is the struct used in the ntp-config.conf.tpl template file</p>
+NTPDConfig is the struct used in the ntp-config.conf.tpl template file
 </p>
+
 <table>
 <thead>
 <tr>
@@ -256,11 +294,12 @@ NTPDConfig
 </tr>
 </thead>
 <tbody>
+
 <tr>
 <td>
 <code>servers</code></br>
 <em>
-[]string
+string array
 </em>
 </td>
 <td>
@@ -271,16 +310,15 @@ NTPDConfig
 <td>
 <code>interfaces</code></br>
 <em>
-[]string
+string array
 </em>
 </td>
 <td>
 <p>Interfaces for ntpd to bind to. Can be more than one.</p>
 </td>
 </tr>
+
 </tbody>
 </table>
-<hr/>
-<p><em>
-Generated with <a href="https://github.com/ahmetb/gen-crd-api-reference-docs">gen-crd-api-reference-docs</a>
-</em></p>
+
+
