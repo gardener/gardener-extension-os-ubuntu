@@ -1,4 +1,4 @@
-# [Gardener Extension for Ubuntu OS](https://gardener.cloud)
+# Gardener Extension for Ubuntu OS
 
 [![REUSE status](https://api.reuse.software/badge/github.com/gardener/gardener-extension-os-ubuntu)](https://api.reuse.software/info/github.com/gardener/gardener-extension-os-ubuntu)
 [![Build status](https://github.com/gardener/gardener-extension-os-ubuntu/actions/workflows/non-release.yaml/badge.svg?branch=master)](https://github.com/gardener/gardener-extension-os-ubuntu/actions/workflows/non-release.yaml)
