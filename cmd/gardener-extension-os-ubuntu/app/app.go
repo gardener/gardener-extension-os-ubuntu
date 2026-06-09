@@ -15,11 +15,9 @@ import (
 	heartbeatcmd "github.com/gardener/gardener/extensions/pkg/controller/heartbeat/cmd"
 	osccontroller "github.com/gardener/gardener/extensions/pkg/controller/operatingsystemconfig"
 	"github.com/gardener/gardener/extensions/pkg/util"
-	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/spf13/cobra"
 	corev1 "k8s.io/api/core/v1"
 	componentbaseconfig "k8s.io/component-base/config/v1alpha1"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
@@ -113,7 +111,7 @@ func NewControllerCommand(ctx context.Context) *cobra.Command {
 			ctrlOpts.Completed().Apply(&operatingsystemconfig.DefaultAddOptions.Controller)
 			heartbeatCtrlOpts.Completed().Apply(&heartbeat.DefaultAddOptions)
 
-			reconcileOpts.Completed().Apply(&operatingsystemconfig.DefaultAddOptions.IgnoreOperationAnnotation, ptr.To([]extensionsv1alpha1.ExtensionClass{extensionsv1alpha1.ExtensionClassShoot}))
+			reconcileOpts.Completed().Apply(&operatingsystemconfig.DefaultAddOptions.IgnoreOperationAnnotation)
 
 			ubuntuOpts.Completed().Apply(&operatingsystemconfig.DefaultAddOptions.ExtensionConfig)
 
