@@ -25,6 +25,7 @@ import (
 
 	"github.com/gardener/gardener-extension-os-ubuntu/pkg/controller/config/v1alpha1"
 	. "github.com/gardener/gardener-extension-os-ubuntu/pkg/controller/operatingsystemconfig"
+	"github.com/gardener/gardener-extension-os-ubuntu/pkg/controller/operatingsystemconfig/fixtures"
 )
 
 //go:embed scripts/installNTP.sh
@@ -80,96 +81,12 @@ var _ = Describe("Actuator", func() {
 	})
 
 	When("purpose is 'provision'", func() {
-		expectedUserData := `#cloud-config-archive
-- content: |
-    #!/bin/bash
-    if [ -f "/var/lib/osc/provision-osc-applied" ]; then
-      echo "Provision OSC already applied, exiting..."
-      exit 0
-    fi
-
-    mkdir -p /etc/cloud/cloud.cfg.d/
-    cat <<EOF > /etc/cloud/cloud.cfg.d/custom-networking.cfg
-    network:
-      config: disabled
-    EOF
-    chmod 0644 /etc/cloud/cloud.cfg.d/custom-networking.cfg
-
-    mkdir -p "/some"
-
-    cat << EOF | base64 -d > "/some/file"
-    YmFy
-    EOF
-
-
-    cat << EOF | base64 -d > "/etc/systemd/system/some-unit"
-    Zm9v
-    EOF
-    UBUNTU_VERSION=""
-    BUILD_SERIAL=""
-    if [ -f /etc/os-release ]; then
-      UBUNTU_VERSION=$(grep '^VERSION_ID=' /etc/os-release | cut -d= -f2 | tr -d '"')
-    fi
-    if [ -f /etc/cloud/build.info ]; then
-      BUILD_SERIAL=$(grep '^serial:' /etc/cloud/build.info | awk '{print $2}')
-    fi
-
-    until apt-get update -qq; do sleep 1; done
-
-    install_package() {
-      local name=$1
-      local version=$2
-      local hold=$3
-
-      if [ -n "$version" ]; then
-        until apt-get install --no-upgrade -qqy "${name}=${version}"; do sleep 1; done
-      else
-        until apt-get install --no-upgrade -qqy "${name}"; do sleep 1; done
-      fi
-
-      if [ "$hold" = "true" ]; then
-        apt-mark hold "$name"
-      fi
-    }
-
-    install_package "containerd" "" false
-    install_package "jq" "" false
-    install_package "logrotate" "" false
-    install_package "nfs-common" "" false
-    install_package "policykit-1" "" false
-    install_package "runc" "" false
-    install_package "socat" "" false
-
-    if [ ! -s /etc/containerd/config.toml ]; then
-      mkdir -p /etc/containerd/
-      containerd config default > /etc/containerd/config.toml
-      chmod 0644 /etc/containerd/config.toml
-    fi
-
-    mkdir -p /etc/systemd/system/containerd.service.d
-    cat <<EOF > /etc/systemd/system/containerd.service.d/11-exec_config.conf
-    [Service]
-    ExecStart=
-    ExecStart=/usr/bin/containerd --config=/etc/containerd/config.toml
-    EOF
-    chmod 0644 /etc/systemd/system/containerd.service.d/11-exec_config.conf
-
-    systemctl daemon-reload
-    systemctl enable containerd && systemctl restart containerd
-    systemctl enable 'some-unit' && systemctl restart --no-block 'some-unit'
-
-
-    mkdir -p /var/lib/osc
-    touch /var/lib/osc/provision-osc-applied
-  type: text/x-shellscript
-`
-
 		Describe("#Reconcile", func() {
 			It("should not return an error", func() {
 				userData, extensionUnits, extensionFiles, inplaceUpdateStatus, err := actuator.Reconcile(ctx, log, osc)
 				Expect(err).NotTo(HaveOccurred())
 
-				expectUserDataToMatch(userData, expectedUserData)
+				expectUserDataToMatch(userData, fixtures.UserDataBasic)
 				Expect(extensionUnits).To(BeEmpty())
 				Expect(extensionFiles).To(BeEmpty())
 				Expect(inplaceUpdateStatus).To(BeNil())
@@ -177,95 +94,6 @@ var _ = Describe("Actuator", func() {
 		})
 
 		Describe("#Reconcile with disabled unattended upgrades", func() {
-			expectedUserData := `#cloud-config-archive
-- content: |
-    #!/bin/bash
-    if [ -f "/var/lib/osc/provision-osc-applied" ]; then
-      echo "Provision OSC already applied, exiting..."
-      exit 0
-    fi
-
-    mkdir -p /etc/cloud/cloud.cfg.d/
-    cat <<EOF > /etc/cloud/cloud.cfg.d/custom-networking.cfg
-    network:
-      config: disabled
-    EOF
-    chmod 0644 /etc/cloud/cloud.cfg.d/custom-networking.cfg
-
-    mkdir -p "/some"
-
-    cat << EOF | base64 -d > "/some/file"
-    YmFy
-    EOF
-
-
-    cat << EOF | base64 -d > "/etc/systemd/system/some-unit"
-    Zm9v
-    EOF
-    UBUNTU_VERSION=""
-    BUILD_SERIAL=""
-    if [ -f /etc/os-release ]; then
-      UBUNTU_VERSION=$(grep '^VERSION_ID=' /etc/os-release | cut -d= -f2 | tr -d '"')
-    fi
-    if [ -f /etc/cloud/build.info ]; then
-      BUILD_SERIAL=$(grep '^serial:' /etc/cloud/build.info | awk '{print $2}')
-    fi
-
-    until apt-get update -qq; do sleep 1; done
-
-    install_package() {
-      local name=$1
-      local version=$2
-      local hold=$3
-
-      if [ -n "$version" ]; then
-        until apt-get install --no-upgrade -qqy "${name}=${version}"; do sleep 1; done
-      else
-        until apt-get install --no-upgrade -qqy "${name}"; do sleep 1; done
-      fi
-
-      if [ "$hold" = "true" ]; then
-        apt-mark hold "$name"
-      fi
-    }
-
-    install_package "containerd" "" false
-    install_package "jq" "" false
-    install_package "logrotate" "" false
-    install_package "nfs-common" "" false
-    install_package "policykit-1" "" false
-    install_package "runc" "" false
-    install_package "socat" "" false
-
-    if [ ! -s /etc/containerd/config.toml ]; then
-      mkdir -p /etc/containerd/
-      containerd config default > /etc/containerd/config.toml
-      chmod 0644 /etc/containerd/config.toml
-    fi
-
-    mkdir -p /etc/systemd/system/containerd.service.d
-    cat <<EOF > /etc/systemd/system/containerd.service.d/11-exec_config.conf
-    [Service]
-    ExecStart=
-    ExecStart=/usr/bin/containerd --config=/etc/containerd/config.toml
-    EOF
-    chmod 0644 /etc/systemd/system/containerd.service.d/11-exec_config.conf
-
-    mkdir -p /etc/apt/apt.conf.d
-    cat <<EOF > /etc/apt/apt.conf.d/99-auto-upgrades.conf
-    APT::Periodic::Unattended-Upgrade "0";
-    EOF
-    chmod 0644 /etc/apt/apt.conf.d/99-auto-upgrades.conf
-
-    systemctl daemon-reload
-    systemctl enable containerd && systemctl restart containerd
-    systemctl enable 'some-unit' && systemctl restart --no-block 'some-unit'
-
-
-    mkdir -p /var/lib/osc
-    touch /var/lib/osc/provision-osc-applied
-  type: text/x-shellscript
-`
 			It("should not return an error", func() {
 				extensionConfig := Config{ExtensionConfig: &v1alpha1.ExtensionConfig{
 					DisableUnattendedUpgrades: ptr.To(true),
@@ -283,7 +111,7 @@ var _ = Describe("Actuator", func() {
 				userData, extensionUnits, extensionFiles, inplaceUpdateStatus, err := actuator.Reconcile(ctx, log, osc)
 				Expect(err).NotTo(HaveOccurred())
 
-				expectUserDataToMatch(userData, expectedUserData)
+				expectUserDataToMatch(userData, fixtures.UserDataDisabledUnattendedUpgrades)
 				Expect(extensionUnits).To(BeEmpty())
 				Expect(extensionFiles).To(BeEmpty())
 				Expect(inplaceUpdateStatus).To(BeNil())
@@ -291,103 +119,6 @@ var _ = Describe("Actuator", func() {
 		})
 
 		Describe("#Reconcile with custom apt config", func() {
-			expectedUserData := `#cloud-config-archive
-- content: |
-    #!/bin/bash
-    if [ -f "/var/lib/osc/provision-osc-applied" ]; then
-      echo "Provision OSC already applied, exiting..."
-      exit 0
-    fi
-
-    mkdir -p /etc/cloud/cloud.cfg.d/
-    cat <<EOF > /etc/cloud/cloud.cfg.d/custom-networking.cfg
-    network:
-      config: disabled
-    EOF
-    chmod 0644 /etc/cloud/cloud.cfg.d/custom-networking.cfg
-
-    mkdir -p "/some"
-
-    cat << EOF | base64 -d > "/some/file"
-    YmFy
-    EOF
-
-
-    cat << EOF | base64 -d > "/etc/systemd/system/some-unit"
-    Zm9v
-    EOF
-    UBUNTU_VERSION=""
-    BUILD_SERIAL=""
-    if [ -f /etc/os-release ]; then
-      UBUNTU_VERSION=$(grep '^VERSION_ID=' /etc/os-release | cut -d= -f2 | tr -d '"')
-    fi
-    if [ -f /etc/cloud/build.info ]; then
-      BUILD_SERIAL=$(grep '^serial:' /etc/cloud/build.info | awk '{print $2}')
-    fi
-
-    until apt-get update -qq; do sleep 1; done
-
-    install_package() {
-      local name=$1
-      local version=$2
-      local hold=$3
-
-      if [ -n "$version" ]; then
-        until apt-get install --no-upgrade -qqy "${name}=${version}"; do sleep 1; done
-      else
-        until apt-get install --no-upgrade -qqy "${name}"; do sleep 1; done
-      fi
-
-      if [ "$hold" = "true" ]; then
-        apt-mark hold "$name"
-      fi
-    }
-
-    install_package "containerd" "" false
-    install_package "jq" "" false
-    install_package "logrotate" "" false
-    install_package "nfs-common" "" false
-    install_package "policykit-1" "" false
-    install_package "runc" "" false
-    install_package "socat" "" false
-
-    if [ ! -s /etc/containerd/config.toml ]; then
-      mkdir -p /etc/containerd/
-      containerd config default > /etc/containerd/config.toml
-      chmod 0644 /etc/containerd/config.toml
-    fi
-
-    mkdir -p /etc/systemd/system/containerd.service.d
-    cat <<EOF > /etc/systemd/system/containerd.service.d/11-exec_config.conf
-    [Service]
-    ExecStart=
-    ExecStart=/usr/bin/containerd --config=/etc/containerd/config.toml
-    EOF
-    chmod 0644 /etc/systemd/system/containerd.service.d/11-exec_config.conf
-
-    systemctl daemon-reload
-    systemctl enable containerd && systemctl restart containerd
-    systemctl enable 'some-unit' && systemctl restart --no-block 'some-unit'
-
-
-    mkdir -p /var/lib/osc
-    touch /var/lib/osc/provision-osc-applied
-  type: text/x-shellscript
-- content: |
-    #cloud-config
-    apt:
-      preserve_sources_list: false
-      primary:
-      - arches:
-        - default
-        uri: http://packages.ubuntu-mirror.example.com/apt-mirror/ubuntu
-      security:
-      - arches:
-        - default
-        uri: http://packages.ubuntu-mirror.example.com/apt-mirror/ubuntu
-  type: text/cloud-config
-`
-
 			It("should not return an error", func() {
 				extensionConfig := Config{ExtensionConfig: &v1alpha1.ExtensionConfig{
 					Dependencies: []v1alpha1.DependencyConfig{
@@ -418,7 +149,7 @@ var _ = Describe("Actuator", func() {
 				userData, extensionUnits, extensionFiles, inplaceUpdateStatus, err := actuator.Reconcile(ctx, log, osc)
 				Expect(err).NotTo(HaveOccurred())
 
-				expectUserDataToMatch(userData, expectedUserData)
+				expectUserDataToMatch(userData, fixtures.UserDataCustomAptConfig)
 				Expect(extensionUnits).To(BeEmpty())
 				Expect(extensionFiles).To(BeEmpty())
 				Expect(inplaceUpdateStatus).To(BeNil())
@@ -426,97 +157,6 @@ var _ = Describe("Actuator", func() {
 		})
 
 		Describe("#Reconcile with docker apt repository and default dependencies", func() {
-			expectedUserData := `#cloud-config-archive
-- content: |
-    #!/bin/bash
-    if [ -f "/var/lib/osc/provision-osc-applied" ]; then
-      echo "Provision OSC already applied, exiting..."
-      exit 0
-    fi
-
-    mkdir -p /etc/cloud/cloud.cfg.d/
-    cat <<EOF > /etc/cloud/cloud.cfg.d/custom-networking.cfg
-    network:
-      config: disabled
-    EOF
-    chmod 0644 /etc/cloud/cloud.cfg.d/custom-networking.cfg
-
-    mkdir -p "/some"
-
-    cat << EOF | base64 -d > "/some/file"
-    YmFy
-    EOF
-
-
-    cat << EOF | base64 -d > "/etc/systemd/system/some-unit"
-    Zm9v
-    EOF
-    UBUNTU_VERSION=""
-    BUILD_SERIAL=""
-    if [ -f /etc/os-release ]; then
-      UBUNTU_VERSION=$(grep '^VERSION_ID=' /etc/os-release | cut -d= -f2 | tr -d '"')
-    fi
-    if [ -f /etc/cloud/build.info ]; then
-      BUILD_SERIAL=$(grep '^serial:' /etc/cloud/build.info | awk '{print $2}')
-    fi
-
-    until apt-get update -qq; do sleep 1; done
-
-    install_package() {
-      local name=$1
-      local version=$2
-      local hold=$3
-
-      if [ -n "$version" ]; then
-        until apt-get install --no-upgrade -qqy "${name}=${version}"; do sleep 1; done
-      else
-        until apt-get install --no-upgrade -qqy "${name}"; do sleep 1; done
-      fi
-
-      if [ "$hold" = "true" ]; then
-        apt-mark hold "$name"
-      fi
-    }
-
-    install_package "containerd.io" "" false
-    install_package "jq" "" false
-    install_package "logrotate" "" false
-    install_package "nfs-common" "" false
-    install_package "policykit-1" "" false
-    install_package "runc" "" false
-    install_package "socat" "" false
-
-    if [ ! -s /etc/containerd/config.toml ]; then
-      mkdir -p /etc/containerd/
-      containerd config default > /etc/containerd/config.toml
-      chmod 0644 /etc/containerd/config.toml
-    fi
-
-    mkdir -p /etc/systemd/system/containerd.service.d
-    cat <<EOF > /etc/systemd/system/containerd.service.d/11-exec_config.conf
-    [Service]
-    ExecStart=
-    ExecStart=/usr/bin/containerd --config=/etc/containerd/config.toml
-    EOF
-    chmod 0644 /etc/systemd/system/containerd.service.d/11-exec_config.conf
-
-    systemctl daemon-reload
-    systemctl enable containerd && systemctl restart containerd
-    systemctl enable 'some-unit' && systemctl restart --no-block 'some-unit'
-
-
-    mkdir -p /var/lib/osc
-    touch /var/lib/osc/provision-osc-applied
-  type: text/x-shellscript
-- content: |
-    #cloud-config
-    apt:
-      preserve_sources_list: false
-      sources:
-        docker:
-          source: deb https://download.docker.com/linux/ubuntu $RELEASE stable
-  type: text/cloud-config
-`
 			It("should configure the docker apt source and install default packages", func() {
 				extensionConfig := Config{ExtensionConfig: &v1alpha1.ExtensionConfig{
 					DisableUnattendedUpgrades: ptr.To(false),
@@ -540,7 +180,7 @@ var _ = Describe("Actuator", func() {
 				userData, extensionUnits, extensionFiles, inplaceUpdateStatus, err := actuator.Reconcile(ctx, log, osc)
 				Expect(err).NotTo(HaveOccurred())
 
-				expectUserDataToMatch(userData, expectedUserData)
+				expectUserDataToMatch(userData, fixtures.UserDataDockerRepo)
 				Expect(extensionUnits).To(BeEmpty())
 				Expect(extensionFiles).To(BeEmpty())
 				Expect(inplaceUpdateStatus).To(BeNil())
@@ -548,91 +188,6 @@ var _ = Describe("Actuator", func() {
 		})
 
 		Describe("#Reconcile with custom apt repository mirror", func() {
-			expectedUserData := `#cloud-config-archive
-- content: |
-    #!/bin/bash
-    if [ -f "/var/lib/osc/provision-osc-applied" ]; then
-      echo "Provision OSC already applied, exiting..."
-      exit 0
-    fi
-
-    mkdir -p /etc/cloud/cloud.cfg.d/
-    cat <<EOF > /etc/cloud/cloud.cfg.d/custom-networking.cfg
-    network:
-      config: disabled
-    EOF
-    chmod 0644 /etc/cloud/cloud.cfg.d/custom-networking.cfg
-
-    mkdir -p "/some"
-
-    cat << EOF | base64 -d > "/some/file"
-    YmFy
-    EOF
-
-
-    cat << EOF | base64 -d > "/etc/systemd/system/some-unit"
-    Zm9v
-    EOF
-    UBUNTU_VERSION=""
-    BUILD_SERIAL=""
-    if [ -f /etc/os-release ]; then
-      UBUNTU_VERSION=$(grep '^VERSION_ID=' /etc/os-release | cut -d= -f2 | tr -d '"')
-    fi
-    if [ -f /etc/cloud/build.info ]; then
-      BUILD_SERIAL=$(grep '^serial:' /etc/cloud/build.info | awk '{print $2}')
-    fi
-
-    until apt-get update -qq; do sleep 1; done
-
-    install_package() {
-      local name=$1
-      local version=$2
-      local hold=$3
-
-      if [ -n "$version" ]; then
-        until apt-get install --no-upgrade -qqy "${name}=${version}"; do sleep 1; done
-      else
-        until apt-get install --no-upgrade -qqy "${name}"; do sleep 1; done
-      fi
-
-      if [ "$hold" = "true" ]; then
-        apt-mark hold "$name"
-      fi
-    }
-
-    install_package "containerd.io" "" false
-
-    if [ ! -s /etc/containerd/config.toml ]; then
-      mkdir -p /etc/containerd/
-      containerd config default > /etc/containerd/config.toml
-      chmod 0644 /etc/containerd/config.toml
-    fi
-
-    mkdir -p /etc/systemd/system/containerd.service.d
-    cat <<EOF > /etc/systemd/system/containerd.service.d/11-exec_config.conf
-    [Service]
-    ExecStart=
-    ExecStart=/usr/bin/containerd --config=/etc/containerd/config.toml
-    EOF
-    chmod 0644 /etc/systemd/system/containerd.service.d/11-exec_config.conf
-
-    systemctl daemon-reload
-    systemctl enable containerd && systemctl restart containerd
-    systemctl enable 'some-unit' && systemctl restart --no-block 'some-unit'
-
-
-    mkdir -p /var/lib/osc
-    touch /var/lib/osc/provision-osc-applied
-  type: text/x-shellscript
-- content: |
-    #cloud-config
-    apt:
-      preserve_sources_list: false
-      sources:
-        docker:
-          source: deb http://mirror.example.com/linux/ubuntu $RELEASE stable
-  type: text/cloud-config
-`
 			It("should use the provided mirror URI", func() {
 				extensionConfig := Config{ExtensionConfig: &v1alpha1.ExtensionConfig{
 					AptRepositories: []v1alpha1.AptRepository{
@@ -646,102 +201,11 @@ var _ = Describe("Actuator", func() {
 				userData, _, _, _, err := actuator.Reconcile(ctx, log, osc)
 				Expect(err).NotTo(HaveOccurred())
 
-				expectUserDataToMatch(userData, expectedUserData)
+				expectUserDataToMatch(userData, fixtures.UserDataCustomMirror)
 			})
 		})
 
 		Describe("#Reconcile with apt repository and GPG key", func() {
-			expectedUserData := `#cloud-config-archive
-- content: |
-    #!/bin/bash
-    if [ -f "/var/lib/osc/provision-osc-applied" ]; then
-      echo "Provision OSC already applied, exiting..."
-      exit 0
-    fi
-
-    mkdir -p /etc/cloud/cloud.cfg.d/
-    cat <<EOF > /etc/cloud/cloud.cfg.d/custom-networking.cfg
-    network:
-      config: disabled
-    EOF
-    chmod 0644 /etc/cloud/cloud.cfg.d/custom-networking.cfg
-
-    mkdir -p "/some"
-
-    cat << EOF | base64 -d > "/some/file"
-    YmFy
-    EOF
-
-
-    cat << EOF | base64 -d > "/etc/systemd/system/some-unit"
-    Zm9v
-    EOF
-    UBUNTU_VERSION=""
-    BUILD_SERIAL=""
-    if [ -f /etc/os-release ]; then
-      UBUNTU_VERSION=$(grep '^VERSION_ID=' /etc/os-release | cut -d= -f2 | tr -d '"')
-    fi
-    if [ -f /etc/cloud/build.info ]; then
-      BUILD_SERIAL=$(grep '^serial:' /etc/cloud/build.info | awk '{print $2}')
-    fi
-
-    until apt-get update -qq; do sleep 1; done
-
-    install_package() {
-      local name=$1
-      local version=$2
-      local hold=$3
-
-      if [ -n "$version" ]; then
-        until apt-get install --no-upgrade -qqy "${name}=${version}"; do sleep 1; done
-      else
-        until apt-get install --no-upgrade -qqy "${name}"; do sleep 1; done
-      fi
-
-      if [ "$hold" = "true" ]; then
-        apt-mark hold "$name"
-      fi
-    }
-
-    install_package "containerd.io" "" false
-
-    if [ ! -s /etc/containerd/config.toml ]; then
-      mkdir -p /etc/containerd/
-      containerd config default > /etc/containerd/config.toml
-      chmod 0644 /etc/containerd/config.toml
-    fi
-
-    mkdir -p /etc/systemd/system/containerd.service.d
-    cat <<EOF > /etc/systemd/system/containerd.service.d/11-exec_config.conf
-    [Service]
-    ExecStart=
-    ExecStart=/usr/bin/containerd --config=/etc/containerd/config.toml
-    EOF
-    chmod 0644 /etc/systemd/system/containerd.service.d/11-exec_config.conf
-
-    systemctl daemon-reload
-    systemctl enable containerd && systemctl restart containerd
-    systemctl enable 'some-unit' && systemctl restart --no-block 'some-unit'
-
-
-    mkdir -p /var/lib/osc
-    touch /var/lib/osc/provision-osc-applied
-  type: text/x-shellscript
-- content: |
-    #cloud-config
-    apt:
-      preserve_sources_list: false
-      sources:
-        docker:
-          key: |-
-            -----BEGIN PGP PUBLIC KEY BLOCK-----
-            mQINBFit2ioBEADhWpZ8/wvZ6hUTiXOwQHXMAlaFHcPH9hAtr4F1y2+OYdbtMuth
-            lO49r1nayzQb8T14bZf2DdpOjXn8b5XrZQ9JZ5hZ1XyZ5XyZ5XyZ5XyZ5XyZ5XyZ
-            -----END PGP PUBLIC KEY BLOCK-----
-          source: deb [signed-by=$KEY_FILE] https://download.docker.com/linux/ubuntu $RELEASE
-            stable
-  type: text/cloud-config
-`
 			It("should include signed-by option when GPG key is provided", func() {
 				extensionConfig := Config{ExtensionConfig: &v1alpha1.ExtensionConfig{
 					AptRepositories: []v1alpha1.AptRepository{
@@ -762,102 +226,11 @@ lO49r1nayzQb8T14bZf2DdpOjXn8b5XrZQ9JZ5hZ1XyZ5XyZ5XyZ5XyZ5XyZ5XyZ
 				userData, _, _, _, err := actuator.Reconcile(ctx, log, osc)
 				Expect(err).NotTo(HaveOccurred())
 
-				expectUserDataToMatch(userData, expectedUserData)
+				expectUserDataToMatch(userData, fixtures.UserDataGpgKey)
 			})
 		})
 
 		Describe("#Reconcile with pinned dependencies", func() {
-			expectedUserData := `#cloud-config-archive
-- content: |
-    #!/bin/bash
-    if [ -f "/var/lib/osc/provision-osc-applied" ]; then
-      echo "Provision OSC already applied, exiting..."
-      exit 0
-    fi
-
-    mkdir -p /etc/cloud/cloud.cfg.d/
-    cat <<EOF > /etc/cloud/cloud.cfg.d/custom-networking.cfg
-    network:
-      config: disabled
-    EOF
-    chmod 0644 /etc/cloud/cloud.cfg.d/custom-networking.cfg
-
-    mkdir -p "/some"
-
-    cat << EOF | base64 -d > "/some/file"
-    YmFy
-    EOF
-
-
-    cat << EOF | base64 -d > "/etc/systemd/system/some-unit"
-    Zm9v
-    EOF
-    UBUNTU_VERSION=""
-    BUILD_SERIAL=""
-    if [ -f /etc/os-release ]; then
-      UBUNTU_VERSION=$(grep '^VERSION_ID=' /etc/os-release | cut -d= -f2 | tr -d '"')
-    fi
-    if [ -f /etc/cloud/build.info ]; then
-      BUILD_SERIAL=$(grep '^serial:' /etc/cloud/build.info | awk '{print $2}')
-    fi
-
-    until apt-get update -qq; do sleep 1; done
-
-    install_package() {
-      local name=$1
-      local version=$2
-      local hold=$3
-
-      if [ -n "$version" ]; then
-        until apt-get install --no-upgrade -qqy "${name}=${version}"; do sleep 1; done
-      else
-        until apt-get install --no-upgrade -qqy "${name}"; do sleep 1; done
-      fi
-
-      if [ "$hold" = "true" ]; then
-        apt-mark hold "$name"
-      fi
-    }
-
-    if [[ (-z "$UBUNTU_VERSION" || "22.04" == "$UBUNTU_VERSION") && (-z "$BUILD_SERIAL" || "20250725" == "$BUILD_SERIAL") ]]; then
-      install_package "containerd.io" "1.7.29-1~ubuntu.22.04~jammy" true
-    elif [[ (-z "$UBUNTU_VERSION" || "26.04" == "$UBUNTU_VERSION") && (-z "$BUILD_SERIAL" || "20260520" == "$BUILD_SERIAL") ]]; then
-      install_package "containerd.io" "2.2.4-1~ubuntu.26.04~resolute" true
-    else
-      install_package "containerd.io" "" false
-    fi
-
-    if [ ! -s /etc/containerd/config.toml ]; then
-      mkdir -p /etc/containerd/
-      containerd config default > /etc/containerd/config.toml
-      chmod 0644 /etc/containerd/config.toml
-    fi
-
-    mkdir -p /etc/systemd/system/containerd.service.d
-    cat <<EOF > /etc/systemd/system/containerd.service.d/11-exec_config.conf
-    [Service]
-    ExecStart=
-    ExecStart=/usr/bin/containerd --config=/etc/containerd/config.toml
-    EOF
-    chmod 0644 /etc/systemd/system/containerd.service.d/11-exec_config.conf
-
-    systemctl daemon-reload
-    systemctl enable containerd && systemctl restart containerd
-    systemctl enable 'some-unit' && systemctl restart --no-block 'some-unit'
-
-
-    mkdir -p /var/lib/osc
-    touch /var/lib/osc/provision-osc-applied
-  type: text/x-shellscript
-- content: |
-    #cloud-config
-    apt:
-      preserve_sources_list: false
-      sources:
-        docker:
-          source: deb https://download.docker.com/linux/ubuntu $RELEASE stable
-  type: text/cloud-config
-`
 			It("should generate version and build serial specific install commands", func() {
 				extensionConfig := Config{ExtensionConfig: &v1alpha1.ExtensionConfig{
 					DisableUnattendedUpgrades: ptr.To(false),
@@ -888,7 +261,7 @@ lO49r1nayzQb8T14bZf2DdpOjXn8b5XrZQ9JZ5hZ1XyZ5XyZ5XyZ5XyZ5XyZ5XyZ
 				userData, _, _, _, err := actuator.Reconcile(ctx, log, osc)
 				Expect(err).NotTo(HaveOccurred())
 
-				expectUserDataToMatch(userData, expectedUserData)
+				expectUserDataToMatch(userData, fixtures.UserDataPinnedDeps)
 			})
 		})
 	})
