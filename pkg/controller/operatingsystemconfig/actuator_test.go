@@ -705,9 +705,9 @@ var _ = Describe("Actuator", func() {
       fi
     }
 
-    if [[ (-z "22.04" || "22.04" == "$UBUNTU_VERSION") && (-z "20250725" || "20250725" == "$BUILD_SERIAL") ]]; then
+    if [[ (-z "$UBUNTU_VERSION" || "22.04" == "$UBUNTU_VERSION") && (-z "$BUILD_SERIAL" || "20250725" == "$BUILD_SERIAL") ]]; then
       install_package "containerd.io" "1.7.29-1~ubuntu.22.04~jammy" true
-    elif [[ (-z "26.04" || "26.04" == "$UBUNTU_VERSION") && (-z "20260520" || "20260520" == "$BUILD_SERIAL") ]]; then
+    elif [[ (-z "$UBUNTU_VERSION" || "26.04" == "$UBUNTU_VERSION") && (-z "$BUILD_SERIAL" || "20260520" == "$BUILD_SERIAL") ]]; then
       install_package "containerd.io" "2.2.4-1~ubuntu.26.04~resolute" true
     else
       install_package "containerd.io" "" false

@@ -336,10 +336,10 @@ func (a *actuator) generateInstallDependenciesScript() string {
 
 			var constraints []string
 			if dep.UbuntuVersion != "" {
-				constraints = append(constraints, fmt.Sprintf(`(-z "%s" || "%s" == "$UBUNTU_VERSION")`, dep.UbuntuVersion, dep.UbuntuVersion))
+				constraints = append(constraints, fmt.Sprintf(`(-z "$UBUNTU_VERSION" || "%s" == "$UBUNTU_VERSION")`, dep.UbuntuVersion))
 			}
 			if dep.UbuntuBuildSerial != "" {
-				constraints = append(constraints, fmt.Sprintf(`(-z "%s" || "%s" == "$BUILD_SERIAL")`, dep.UbuntuBuildSerial, dep.UbuntuBuildSerial))
+				constraints = append(constraints, fmt.Sprintf(`(-z "$BUILD_SERIAL" || "%s" == "$BUILD_SERIAL")`, dep.UbuntuBuildSerial))
 			}
 
 			instruction.Blocks = append(instruction.Blocks, conditionalBlock{

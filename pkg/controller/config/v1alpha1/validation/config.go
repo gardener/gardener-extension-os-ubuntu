@@ -6,12 +6,20 @@ package validation
 
 import (
 	"net/url"
+	"regexp"
 	"slices"
 
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	configv1alpha1 "github.com/gardener/gardener-extension-os-ubuntu/pkg/controller/config/v1alpha1"
+)
+
+var (
+	validPackageName    = regexp.MustCompile(`^[a-z0-9][a-z0-9.+-]+$`)
+	validPackageVersion = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9.+:~\-]*$`)
+	validUbuntuVersion  = regexp.MustCompile(`^[0-9]+\.[0-9]+$`)
+	validBuildSerial    = regexp.MustCompile(`^[0-9]+$`)
 )
 
 func ValidateExtensionConfig(config *configv1alpha1.ExtensionConfig) field.ErrorList {
@@ -66,6 +74,17 @@ func validateDependencies(config []configv1alpha1.DependencyConfig, fldPath *fie
 		depPath := fldPath.Child("dependencies").Index(i)
 		if dep.Name == "" {
 			allErrs = append(allErrs, field.Required(depPath.Child("name"), "name is required"))
+		} else if !validPackageName.MatchString(dep.Name) {
+			allErrs = append(allErrs, field.Invalid(depPath.Child("name"), dep.Name, "must be a valid apt package name (lowercase letters, digits, dots, hyphens, plus)"))
+		}
+		if dep.Version != "" && !validPackageVersion.MatchString(dep.Version) {
+			allErrs = append(allErrs, field.Invalid(depPath.Child("version"), dep.Version, "must be a valid apt package version"))
+		}
+		if dep.UbuntuVersion != "" && !validUbuntuVersion.MatchString(dep.UbuntuVersion) {
+			allErrs = append(allErrs, field.Invalid(depPath.Child("ubuntuVersion"), dep.UbuntuVersion, "must be a valid Ubuntu version (e.g. \"22.04\")"))
+		}
+		if dep.UbuntuBuildSerial != "" && !validBuildSerial.MatchString(dep.UbuntuBuildSerial) {
+			allErrs = append(allErrs, field.Invalid(depPath.Child("ubuntuBuildSerial"), dep.UbuntuBuildSerial, "must be a numeric build serial"))
 		}
 	}
 	return allErrs

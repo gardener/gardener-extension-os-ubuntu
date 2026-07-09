@@ -117,4 +117,44 @@ var _ = Describe("ExtensionConfig validation", func() {
 		Expect(errs[0].Type).To(Equal(field.ErrorTypeRequired))
 		Expect(errs[0].Field).To(Equal("dependencies[0].name"))
 	})
+
+	It("should fail with invalid package name containing shell metacharacters", func() {
+		config.Dependencies = []configv1alpha1.DependencyConfig{
+			{Name: "pkg\"; rm -rf / #"},
+		}
+		errs := ValidateExtensionConfig(config)
+		Expect(errs).To(HaveLen(1))
+		Expect(errs[0].Type).To(Equal(field.ErrorTypeInvalid))
+		Expect(errs[0].Field).To(Equal("dependencies[0].name"))
+	})
+
+	It("should fail with invalid package version containing shell metacharacters", func() {
+		config.Dependencies = []configv1alpha1.DependencyConfig{
+			{Name: "containerd", Version: "1.0\"; malicious_cmd #"},
+		}
+		errs := ValidateExtensionConfig(config)
+		Expect(errs).To(HaveLen(1))
+		Expect(errs[0].Type).To(Equal(field.ErrorTypeInvalid))
+		Expect(errs[0].Field).To(Equal("dependencies[0].version"))
+	})
+
+	It("should fail with invalid ubuntu version format", func() {
+		config.Dependencies = []configv1alpha1.DependencyConfig{
+			{Name: "containerd", UbuntuVersion: "22; rm -rf /"},
+		}
+		errs := ValidateExtensionConfig(config)
+		Expect(errs).To(HaveLen(1))
+		Expect(errs[0].Type).To(Equal(field.ErrorTypeInvalid))
+		Expect(errs[0].Field).To(Equal("dependencies[0].ubuntuVersion"))
+	})
+
+	It("should fail with invalid build serial format", func() {
+		config.Dependencies = []configv1alpha1.DependencyConfig{
+			{Name: "containerd", UbuntuBuildSerial: "20250725; echo pwned"},
+		}
+		errs := ValidateExtensionConfig(config)
+		Expect(errs).To(HaveLen(1))
+		Expect(errs[0].Type).To(Equal(field.ErrorTypeInvalid))
+		Expect(errs[0].Field).To(Equal("dependencies[0].ubuntuBuildSerial"))
+	})
 })
