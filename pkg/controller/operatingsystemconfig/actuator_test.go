@@ -514,8 +514,7 @@ var _ = Describe("Actuator", func() {
       preserve_sources_list: false
       sources:
         docker:
-          source: deb [signed-by=$KEY_FILE] https://download.docker.com/linux/ubuntu $RELEASE
-            stable
+          source: deb https://download.docker.com/linux/ubuntu $RELEASE stable
   type: text/cloud-config
 `
 			It("should configure the docker apt source and install default packages", func() {
@@ -631,14 +630,129 @@ var _ = Describe("Actuator", func() {
       preserve_sources_list: false
       sources:
         docker:
-          source: deb [signed-by=$KEY_FILE] http://mirror.example.com/linux/ubuntu $RELEASE
-            stable
+          source: deb http://mirror.example.com/linux/ubuntu $RELEASE stable
   type: text/cloud-config
 `
 			It("should use the provided mirror URI", func() {
 				extensionConfig := Config{ExtensionConfig: &v1alpha1.ExtensionConfig{
 					AptRepositories: []v1alpha1.AptRepository{
 						{Name: "docker", URI: "http://mirror.example.com/linux/ubuntu"},
+					},
+					Dependencies: []v1alpha1.DependencyConfig{
+						{Name: "containerd.io"},
+					},
+				}}
+				actuator = NewActuator(mgr, extensionConfig)
+				userData, _, _, _, err := actuator.Reconcile(ctx, log, osc)
+				Expect(err).NotTo(HaveOccurred())
+
+				expectUserDataToMatch(userData, expectedUserData)
+			})
+		})
+
+		Describe("#Reconcile with apt repository and GPG key", func() {
+			expectedUserData := `#cloud-config-archive
+- content: |
+    #!/bin/bash
+    if [ -f "/var/lib/osc/provision-osc-applied" ]; then
+      echo "Provision OSC already applied, exiting..."
+      exit 0
+    fi
+
+    mkdir -p /etc/cloud/cloud.cfg.d/
+    cat <<EOF > /etc/cloud/cloud.cfg.d/custom-networking.cfg
+    network:
+      config: disabled
+    EOF
+    chmod 0644 /etc/cloud/cloud.cfg.d/custom-networking.cfg
+
+    mkdir -p "/some"
+
+    cat << EOF | base64 -d > "/some/file"
+    YmFy
+    EOF
+
+
+    cat << EOF | base64 -d > "/etc/systemd/system/some-unit"
+    Zm9v
+    EOF
+    UBUNTU_VERSION=""
+    BUILD_SERIAL=""
+    if [ -f /etc/os-release ]; then
+      UBUNTU_VERSION=$(grep '^VERSION_ID=' /etc/os-release | cut -d= -f2 | tr -d '"')
+    fi
+    if [ -f /etc/cloud/build.info ]; then
+      BUILD_SERIAL=$(grep '^serial:' /etc/cloud/build.info | awk '{print $2}')
+    fi
+
+    until apt-get update -qq; do sleep 1; done
+
+    install_package() {
+      local name=$1
+      local version=$2
+      local hold=$3
+
+      if [ -n "$version" ]; then
+        until apt-get install --no-upgrade -qqy "${name}=${version}"; do sleep 1; done
+      else
+        until apt-get install --no-upgrade -qqy "${name}"; do sleep 1; done
+      fi
+
+      if [ "$hold" = "true" ]; then
+        apt-mark hold "$name"
+      fi
+    }
+
+    install_package "containerd.io" "" false
+
+    if [ ! -s /etc/containerd/config.toml ]; then
+      mkdir -p /etc/containerd/
+      containerd config default > /etc/containerd/config.toml
+      chmod 0644 /etc/containerd/config.toml
+    fi
+
+    mkdir -p /etc/systemd/system/containerd.service.d
+    cat <<EOF > /etc/systemd/system/containerd.service.d/11-exec_config.conf
+    [Service]
+    ExecStart=
+    ExecStart=/usr/bin/containerd --config=/etc/containerd/config.toml
+    EOF
+    chmod 0644 /etc/systemd/system/containerd.service.d/11-exec_config.conf
+
+    systemctl daemon-reload
+    systemctl enable containerd && systemctl restart containerd
+    systemctl enable 'some-unit' && systemctl restart --no-block 'some-unit'
+
+
+    mkdir -p /var/lib/osc
+    touch /var/lib/osc/provision-osc-applied
+  type: text/x-shellscript
+- content: |
+    #cloud-config
+    apt:
+      preserve_sources_list: false
+      sources:
+        docker:
+          key: |-
+            -----BEGIN PGP PUBLIC KEY BLOCK-----
+            mQINBFit2ioBEADhWpZ8/wvZ6hUTiXOwQHXMAlaFHcPH9hAtr4F1y2+OYdbtMuth
+            lO49r1nayzQb8T14bZf2DdpOjXn8b5XrZQ9JZ5hZ1XyZ5XyZ5XyZ5XyZ5XyZ5XyZ
+            -----END PGP PUBLIC KEY BLOCK-----
+          source: deb [signed-by=$KEY_FILE] https://download.docker.com/linux/ubuntu $RELEASE
+            stable
+  type: text/cloud-config
+`
+			It("should include signed-by option when GPG key is provided", func() {
+				extensionConfig := Config{ExtensionConfig: &v1alpha1.ExtensionConfig{
+					AptRepositories: []v1alpha1.AptRepository{
+						{
+							Name: "docker",
+							URI:  "https://download.docker.com/linux/ubuntu",
+							Key: `-----BEGIN PGP PUBLIC KEY BLOCK-----
+mQINBFit2ioBEADhWpZ8/wvZ6hUTiXOwQHXMAlaFHcPH9hAtr4F1y2+OYdbtMuth
+lO49r1nayzQb8T14bZf2DdpOjXn8b5XrZQ9JZ5hZ1XyZ5XyZ5XyZ5XyZ5XyZ5XyZ
+-----END PGP PUBLIC KEY BLOCK-----`,
+						},
 					},
 					Dependencies: []v1alpha1.DependencyConfig{
 						{Name: "containerd.io"},
@@ -741,8 +855,7 @@ var _ = Describe("Actuator", func() {
       preserve_sources_list: false
       sources:
         docker:
-          source: deb [signed-by=$KEY_FILE] https://download.docker.com/linux/ubuntu $RELEASE
-            stable
+          source: deb https://download.docker.com/linux/ubuntu $RELEASE stable
   type: text/cloud-config
 `
 			It("should generate version and build serial specific install commands", func() {

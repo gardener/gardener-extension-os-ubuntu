@@ -56,10 +56,15 @@ func ValidateExtensionConfig(config *configv1alpha1.ExtensionConfig) field.Error
 
 func validateAptRepositories(config []configv1alpha1.AptRepository, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
+	seenNames := sets.New[string]()
 	for i, repo := range config {
 		repoPath := fldPath.Child("aptRepositories").Index(i)
 		if repo.Name == "" {
 			allErrs = append(allErrs, field.Required(repoPath.Child("name"), "name is required"))
+		} else if seenNames.Has(repo.Name) {
+			allErrs = append(allErrs, field.Duplicate(repoPath.Child("name"), repo.Name))
+		} else {
+			seenNames.Insert(repo.Name)
 		}
 		if !isValidURL(repo.URI) {
 			allErrs = append(allErrs, field.Invalid(repoPath.Child("uri"), repo.URI, "invalid URL"))

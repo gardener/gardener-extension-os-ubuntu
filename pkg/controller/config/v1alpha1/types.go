@@ -44,7 +44,7 @@ type ExtensionConfig struct {
 }
 
 // AptRepository describes an additional apt repository to configure via
-// cloud-init. Name "docker" uses the embedded Docker GPG key when Key is empty.
+// cloud-init.
 type AptRepository struct {
 	// Name is a unique name for the apt source.
 	Name string `json:"name"`
@@ -52,8 +52,7 @@ type AptRepository struct {
 	// is typically https://download.docker.com/linux/ubuntu.
 	URI string `json:"uri"`
 	// Key is the ASCII-armored GPG key used to sign the repository. If empty,
-	// a well-known key may be used for repositories with a matching Name
-	// (e.g. "docker").
+	// the repository is configured without GPG signature verification.
 	// +optional
 	Key string `json:"key,omitempty"`
 	// Suite is the apt suite to use. Defaults to "$RELEASE" which cloud-init

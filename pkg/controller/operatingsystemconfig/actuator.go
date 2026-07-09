@@ -124,7 +124,10 @@ func (a *actuator) handleProvisionOSC(ctx context.Context, osc *extensionsv1alph
 	}
 	writeUnitsToDiskScript := operatingsystemconfig.UnitsToDiskScript(osc.Spec.Units)
 
-	installScript := a.generateInstallDependenciesScript()
+	installScript, err := a.generateInstallDependenciesScript()
+	if err != nil {
+		return "", err
+	}
 
 	script := `#!/bin/bash
 mkdir -p /etc/cloud/cloud.cfg.d/
@@ -225,7 +228,11 @@ func (a *actuator) createAPTCloudConfig() (internal.FilePart, error) {
 			if len(components) == 0 {
 				components = []string{"stable"}
 			}
-			source := fmt.Sprintf("deb [signed-by=$KEY_FILE] %s %s %s", repo.URI, suite, strings.Join(components, " "))
+
+			source := fmt.Sprintf("deb %s %s %s", repo.URI, suite, strings.Join(components, " "))
+			if key != "" {
+				source = fmt.Sprintf("deb [signed-by=$KEY_FILE] %s %s %s", repo.URI, suite, strings.Join(components, " "))
+			}
 			aptConfig.Sources[repo.Name] = internal.APTSource{
 				Source: source,
 				Key:    key,
@@ -304,7 +311,7 @@ chmod 0644 /etc/apt/apt.conf.d/99-auto-upgrades.conf
 	return ""
 }
 
-func (a *actuator) generateInstallDependenciesScript() string {
+func (a *actuator) generateInstallDependenciesScript() (string, error) {
 	// Group dependencies by package name
 	byName := make(map[string][]configv1alpha1.DependencyConfig)
 	for _, dep := range a.extensionConfig.Dependencies {
@@ -356,10 +363,10 @@ func (a *actuator) generateInstallDependenciesScript() string {
 	var sb strings.Builder
 	err := installDependenciesTemplate.Execute(&sb, instructions)
 	if err != nil {
-		return fmt.Sprintf("echo 'Template generation failed: %v'", err)
+		return "", fmt.Errorf("failed to execute install dependencies template: %w", err)
 	}
 
-	return strings.TrimSpace(sb.String())
+	return strings.TrimSpace(sb.String()), nil
 }
 
 // configureNTPDaemon configures the VM either with systemd-timesyncd or ntpd as the time syncing client

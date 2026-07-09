@@ -157,4 +157,15 @@ var _ = Describe("ExtensionConfig validation", func() {
 		Expect(errs[0].Type).To(Equal(field.ErrorTypeInvalid))
 		Expect(errs[0].Field).To(Equal("dependencies[0].ubuntuBuildSerial"))
 	})
+
+	It("should fail with duplicate repository names", func() {
+		config.AptRepositories = []configv1alpha1.AptRepository{
+			{Name: "docker", URI: "https://download.docker.com/linux/ubuntu"},
+			{Name: "docker", URI: "https://mirror.example.com/docker"},
+		}
+		errs := ValidateExtensionConfig(config)
+		Expect(errs).To(HaveLen(1))
+		Expect(errs[0].Type).To(Equal(field.ErrorTypeDuplicate))
+		Expect(errs[0].Field).To(Equal("aptRepositories[1].name"))
+	})
 })
