@@ -28,9 +28,65 @@ type ExtensionConfig struct {
 	// DisableUnattendedUpgrades to disable unattended upgrades in ubuntu
 	// +optional
 	DisableUnattendedUpgrades *bool `json:"disableUnattendedUpgrades,omitempty"`
+	// AptRepositories is the list of additional apt repositories to configure
+	// via cloud-init. Defaults to the official Docker apt repository so that
+	// containerd.io can be installed instead of the Ubuntu containerd package.
+	// +optional
+	AptRepositories []AptRepository `json:"aptRepositories,omitempty"`
+	// Dependencies is the list of apt packages to install on the node. If empty,
+	// a default set of unpinned packages is installed. Each dependency may
+	// optionally target a specific Ubuntu version and/or build serial.
+	// +optional
+	Dependencies []DependencyConfig `json:"dependencies,omitempty"`
 	// Mirror to set custom Ubuntu mirror
 	// +optional
 	APTConfig *APTConfig `json:"apt,omitempty"`
+}
+
+// AptRepository describes an additional apt repository to configure via
+// cloud-init. Name "docker" uses the embedded Docker GPG key when Key is empty.
+type AptRepository struct {
+	// Name is a unique name for the apt source.
+	Name string `json:"name"`
+	// URI is the base URI of the apt repository. For the docker repository this
+	// is typically https://download.docker.com/linux/ubuntu.
+	URI string `json:"uri"`
+	// Key is the ASCII-armored GPG key used to sign the repository. If empty,
+	// a well-known key may be used for repositories with a matching Name
+	// (e.g. "docker").
+	// +optional
+	Key string `json:"key,omitempty"`
+	// Suite is the apt suite to use. Defaults to "$RELEASE" which cloud-init
+	// substitutes with the release codename.
+	// +optional
+	Suite string `json:"suite,omitempty"`
+	// Components is the list of apt components to use. Defaults to ["stable"].
+	// +optional
+	Components []string `json:"components,omitempty"`
+}
+
+// DependencyConfig describes an apt package to install.
+type DependencyConfig struct {
+	// Name is the name of the apt package.
+	Name string `json:"name"`
+	// Version is the exact apt package version to install. If empty, the latest
+	// available version is installed.
+	// +optional
+	Version string `json:"version,omitempty"`
+	// UbuntuVersion optionally restricts this dependency to a specific Ubuntu
+	// version (e.g. "22.04"). The value is matched against VERSION_ID from
+	// /etc/os-release.
+	// +optional
+	UbuntuVersion string `json:"ubuntuVersion,omitempty"`
+	// UbuntuBuildSerial optionally restricts this dependency to a specific
+	// Ubuntu build serial (e.g. "20250725"). The value is matched against the
+	// serial field in /etc/cloud/build.info.
+	// +optional
+	UbuntuBuildSerial string `json:"ubuntuBuildSerial,omitempty"`
+	// Hold, if true, marks the package on apt hold after installation so that
+	// apt upgrade does not update it.
+	// +optional
+	Hold bool `json:"hold,omitempty"`
 }
 
 // NTPConfig General NTP Config for either systemd-timesyncd or ntpd

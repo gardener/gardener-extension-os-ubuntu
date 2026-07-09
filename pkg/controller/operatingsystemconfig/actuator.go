@@ -9,6 +9,7 @@ import (
 	_ "embed"
 	"fmt"
 	"path/filepath"
+	"sort"
 	"strings"
 	"text/template"
 
@@ -16,7 +17,6 @@ import (
 	"github.com/gardener/gardener/extensions/pkg/controller/operatingsystemconfig"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/go-logr/logr"
-	"k8s.io/apimachinery/pkg/util/json"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -34,6 +34,26 @@ var ntpInstallScript string
 
 var ntpConfigTemplate *template.Template
 
+//go:embed templates/install-dependencies.sh.tpl
+var installDependenciesTemplateContent string
+var installDependenciesTemplate *template.Template
+
+type packageInstruction struct {
+	Name     string
+	Blocks   []conditionalBlock
+	Fallback *installCommand
+}
+
+type conditionalBlock struct {
+	Condition string
+	Command   installCommand
+}
+
+type installCommand struct {
+	Version string
+	Hold    bool
+}
+
 type actuator struct {
 	client          client.Client
 	extensionConfig Config
@@ -50,6 +70,11 @@ func init() {
 	ntpConfigTemplate, err = template.New("ntp-config").Funcs(sprig.TxtFuncMap()).Parse(ntpConfigTemplateContent)
 	if err != nil {
 		panic(fmt.Errorf("failed to parse NTP config template: %w", err))
+	}
+
+	installDependenciesTemplate, err = template.New("install-deps").Parse(installDependenciesTemplateContent)
+	if err != nil {
+		panic(fmt.Errorf("failed to parse install dependencies template: %w", err))
 	}
 }
 
@@ -99,6 +124,8 @@ func (a *actuator) handleProvisionOSC(ctx context.Context, osc *extensionsv1alph
 	}
 	writeUnitsToDiskScript := operatingsystemconfig.UnitsToDiskScript(osc.Spec.Units)
 
+	installScript := a.generateInstallDependenciesScript()
+
 	script := `#!/bin/bash
 mkdir -p /etc/cloud/cloud.cfg.d/
 cat <<EOF > /etc/cloud/cloud.cfg.d/custom-networking.cfg
@@ -108,7 +135,7 @@ EOF
 chmod 0644 /etc/cloud/cloud.cfg.d/custom-networking.cfg
 ` + writeFilesToDiskScript + `
 ` + writeUnitsToDiskScript + `
-until apt-get update -qq && apt-get install --no-upgrade -qqy containerd runc socat nfs-common logrotate jq policykit-1; do sleep 1; done
+` + installScript + `
 
 if [ ! -s /etc/containerd/config.toml ]; then
   mkdir -p /etc/containerd/
@@ -142,7 +169,7 @@ systemctl enable containerd && systemctl restart containerd
 		},
 	}
 
-	if a.extensionConfig.APTConfig != nil {
+	if a.extensionConfig.APTConfig != nil || len(a.extensionConfig.AptRepositories) > 0 {
 		aptConfig, err := a.createAPTCloudConfig()
 		if err != nil {
 			return "", err
@@ -166,36 +193,53 @@ func (a *actuator) createAPTCloudConfig() (internal.FilePart, error) {
 	}
 	if a.extensionConfig.APTConfig != nil {
 		aptConfig.PreserveSourcesList = a.extensionConfig.APTConfig.PreserveSourcesList
+		aptConfig.Primary = make([]internal.APTArchive, 0, len(a.extensionConfig.APTConfig.Primary))
 		for _, primary := range a.extensionConfig.APTConfig.Primary {
-			archive := internal.APTArchive{
+			aptConfig.Primary = append(aptConfig.Primary, internal.APTArchive{
 				Arches:    primary.Arches,
 				URI:       primary.URI,
 				Search:    primary.Search,
 				SearchDNS: primary.SearchDNS,
-			}
-			aptConfig.Primary = append(aptConfig.Primary, archive)
+			})
 		}
+		aptConfig.Security = make([]internal.APTArchive, 0, len(a.extensionConfig.APTConfig.Security))
 		for _, security := range a.extensionConfig.APTConfig.Security {
-			archive := internal.APTArchive{
+			aptConfig.Security = append(aptConfig.Security, internal.APTArchive{
 				Arches:    security.Arches,
 				URI:       security.URI,
 				Search:    security.Search,
 				SearchDNS: security.SearchDNS,
-			}
-			aptConfig.Security = append(aptConfig.Security, archive)
+			})
 		}
-
-		cloudInitApt := internal.APTCloudInit{APT: aptConfig}
-		cloudInitAptJson, err := json.Marshal(cloudInitApt)
-		if err != nil {
-			return aptCloudConfig, fmt.Errorf("failed to marshal cloud-init apt config: %w", err)
-		}
-		cloudInitAptYaml, err := yaml.JSONToYAML(cloudInitAptJson)
-		if err != nil {
-			return aptCloudConfig, fmt.Errorf("failed to convert cloud-init apt config from json to yaml: %w", err)
-		}
-		aptCloudConfig.Content = "#cloud-config\n" + string(cloudInitAptYaml)
 	}
+
+	if len(a.extensionConfig.AptRepositories) > 0 {
+		aptConfig.Sources = make(map[string]internal.APTSource, len(a.extensionConfig.AptRepositories))
+		for _, repo := range a.extensionConfig.AptRepositories {
+			key := repo.Key
+			suite := repo.Suite
+			if suite == "" {
+				suite = "$RELEASE"
+			}
+			components := repo.Components
+			if len(components) == 0 {
+				components = []string{"stable"}
+			}
+			source := fmt.Sprintf("deb [signed-by=$KEY_FILE] %s %s %s", repo.URI, suite, strings.Join(components, " "))
+			aptConfig.Sources[repo.Name] = internal.APTSource{
+				Source: source,
+				Key:    key,
+			}
+		}
+	}
+
+	cloudInitApt := internal.APTCloudInit{APT: aptConfig}
+	cloudInitAptYaml, err := yaml.Marshal(cloudInitApt)
+	if err != nil {
+		return aptCloudConfig, fmt.Errorf("failed to marshal cloud-init apt config to yaml: %w", err)
+	}
+	aptCloudConfig.Content = "#cloud-config\n" + string(cloudInitAptYaml)
+
 	return aptCloudConfig, nil
 }
 
@@ -258,6 +302,64 @@ chmod 0644 /etc/apt/apt.conf.d/99-auto-upgrades.conf
 `
 	}
 	return ""
+}
+
+func (a *actuator) generateInstallDependenciesScript() string {
+	// Group dependencies by package name
+	byName := make(map[string][]configv1alpha1.DependencyConfig)
+	for _, dep := range a.extensionConfig.Dependencies {
+		byName[dep.Name] = append(byName[dep.Name], dep)
+	}
+
+	names := make([]string, 0, len(byName))
+	for name := range byName {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+
+	var instructions []packageInstruction
+
+	// Build data model for the template
+	for _, name := range names {
+		instruction := packageInstruction{Name: name}
+
+		for _, dep := range byName[name] {
+			isUnconstrained := dep.UbuntuVersion == "" && dep.UbuntuBuildSerial == ""
+
+			if isUnconstrained {
+				instruction.Fallback = &installCommand{
+					Version: dep.Version,
+					Hold:    dep.Hold,
+				}
+				break
+			}
+
+			var constraints []string
+			if dep.UbuntuVersion != "" {
+				constraints = append(constraints, fmt.Sprintf(`(-z "%s" || "%s" == "$UBUNTU_VERSION")`, dep.UbuntuVersion, dep.UbuntuVersion))
+			}
+			if dep.UbuntuBuildSerial != "" {
+				constraints = append(constraints, fmt.Sprintf(`(-z "%s" || "%s" == "$BUILD_SERIAL")`, dep.UbuntuBuildSerial, dep.UbuntuBuildSerial))
+			}
+
+			instruction.Blocks = append(instruction.Blocks, conditionalBlock{
+				Condition: strings.Join(constraints, " && "),
+				Command: installCommand{
+					Version: dep.Version,
+					Hold:    dep.Hold,
+				},
+			})
+		}
+		instructions = append(instructions, instruction)
+	}
+
+	var sb strings.Builder
+	err := installDependenciesTemplate.Execute(&sb, instructions)
+	if err != nil {
+		return fmt.Sprintf("echo 'Template generation failed: %v'", err)
+	}
+
+	return strings.TrimSpace(sb.String())
 }
 
 // configureNTPDaemon configures the VM either with systemd-timesyncd or ntpd as the time syncing client

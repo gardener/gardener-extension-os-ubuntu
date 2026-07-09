@@ -40,6 +40,34 @@ func ValidateExtensionConfig(config *configv1alpha1.ExtensionConfig) field.Error
 		allErrs = append(allErrs, validateAPTConfig(config.APTConfig, rootPath)...)
 	}
 
+	allErrs = append(allErrs, validateAptRepositories(config.AptRepositories, rootPath)...)
+	allErrs = append(allErrs, validateDependencies(config.Dependencies, rootPath)...)
+
+	return allErrs
+}
+
+func validateAptRepositories(config []configv1alpha1.AptRepository, fldPath *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
+	for i, repo := range config {
+		repoPath := fldPath.Child("aptRepositories").Index(i)
+		if repo.Name == "" {
+			allErrs = append(allErrs, field.Required(repoPath.Child("name"), "name is required"))
+		}
+		if !isValidURL(repo.URI) {
+			allErrs = append(allErrs, field.Invalid(repoPath.Child("uri"), repo.URI, "invalid URL"))
+		}
+	}
+	return allErrs
+}
+
+func validateDependencies(config []configv1alpha1.DependencyConfig, fldPath *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
+	for i, dep := range config {
+		depPath := fldPath.Child("dependencies").Index(i)
+		if dep.Name == "" {
+			allErrs = append(allErrs, field.Required(depPath.Child("name"), "name is required"))
+		}
+	}
 	return allErrs
 }
 

@@ -85,4 +85,36 @@ var _ = Describe("ExtensionConfig validation", func() {
 		errs := ValidateExtensionConfig(config)
 		Expect(errs).To(HaveLen(2))
 	})
+
+	It("should succeed with valid apt repositories", func() {
+		config.AptRepositories = []configv1alpha1.AptRepository{
+			{Name: "docker", URI: "https://download.docker.com/linux/ubuntu"},
+		}
+		Expect(ValidateExtensionConfig(config)).To(BeEmpty())
+	})
+
+	It("should fail with invalid apt repository", func() {
+		config.AptRepositories = []configv1alpha1.AptRepository{
+			{Name: "", URI: "not-a-valid-url"},
+		}
+		errs := ValidateExtensionConfig(config)
+		Expect(errs).To(HaveLen(2))
+	})
+
+	It("should succeed with valid dependencies", func() {
+		config.Dependencies = []configv1alpha1.DependencyConfig{
+			{Name: "containerd.io", Version: "1.7.29-1~ubuntu.22.04~jammy", Hold: true},
+		}
+		Expect(ValidateExtensionConfig(config)).To(BeEmpty())
+	})
+
+	It("should fail with dependency missing name", func() {
+		config.Dependencies = []configv1alpha1.DependencyConfig{
+			{Version: "1.7.29-1~ubuntu.22.04~jammy"},
+		}
+		errs := ValidateExtensionConfig(config)
+		Expect(errs).To(HaveLen(1))
+		Expect(errs[0].Type).To(Equal(field.ErrorTypeRequired))
+		Expect(errs[0].Field).To(Equal("dependencies[0].name"))
+	})
 })

@@ -20,8 +20,19 @@ func SetDefaults_ExtensionConfig(obj *ExtensionConfig) {
 	if obj.DisableUnattendedUpgrades == nil {
 		obj.DisableUnattendedUpgrades = ptr.To(false)
 	}
-}
 
+	if len(obj.Dependencies) == 0 {
+		obj.Dependencies = []DependencyConfig{
+			{Name: "containerd"},
+			{Name: "runc"},
+			{Name: "socat"},
+			{Name: "nfs-common"},
+			{Name: "logrotate"},
+			{Name: "jq"},
+			{Name: "policykit-1"},
+		}
+	}
+}
 func SetDefaults_NTPConfig(obj *NTPConfig) {
 	if obj.Daemon == "" {
 		obj.Daemon = SystemdTimesyncd
