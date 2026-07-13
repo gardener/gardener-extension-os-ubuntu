@@ -55,8 +55,7 @@
     elif [[ "26.04" == "$UBUNTU_VERSION" && "20260520" == "$BUILD_SERIAL" ]]; then
       install_package "containerd.io" "2.2.4-1~ubuntu.26.04~resolute" true
     else
-      echo "No matching pinned dependency for containerd.io (UBUNTU_VERSION=$UBUNTU_VERSION, BUILD_SERIAL=$BUILD_SERIAL)" >&2
-      exit 1
+      install_package "containerd.io" "" false
     fi
 
     if [ ! -s /etc/containerd/config.toml ]; then

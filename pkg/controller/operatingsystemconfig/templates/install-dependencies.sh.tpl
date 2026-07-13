@@ -36,9 +36,16 @@ elif [[ {{ $block.Condition }} ]]; then
 {{- end }}
   install_package "{{ $name }}" "{{ $block.Command.Version }}" {{ $block.Command.Hold }}
 {{- end }}
+{{- if .Fallback }}
 else
-  install_package "{{ $name }}" "{{ if .Fallback }}{{ .Fallback.Version }}{{ end }}" {{ if .Fallback }}{{ .Fallback.Hold }}{{ else }}false{{ end }}
+  install_package "{{ $name }}" "{{ .Fallback.Version }}" {{ .Fallback.Hold }}
 fi
+{{- else }}
+else
+  echo "No matching pinned dependency for {{ $name }} (UBUNTU_VERSION=$UBUNTU_VERSION, BUILD_SERIAL=$BUILD_SERIAL)" >&2
+  exit 1
+fi
+{{- end }}
 {{ else -}}
 install_package "{{ $name }}" "{{ if .Fallback }}{{ .Fallback.Version }}{{ end }}" {{ if .Fallback }}{{ .Fallback.Hold }}{{ else }}false{{ end }}
 {{ end -}}

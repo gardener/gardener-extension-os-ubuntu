@@ -29,8 +29,7 @@ type ExtensionConfig struct {
 	// +optional
 	DisableUnattendedUpgrades *bool `json:"disableUnattendedUpgrades,omitempty"`
 	// AptRepositories is the list of additional apt repositories to configure
-	// via cloud-init. Defaults to the official Docker apt repository so that
-	// containerd.io can be installed instead of the Ubuntu containerd package.
+	// via cloud-init.
 	// +optional
 	AptRepositories []AptRepository `json:"aptRepositories,omitempty"`
 	// Dependencies is the list of apt packages to install on the node. If empty,

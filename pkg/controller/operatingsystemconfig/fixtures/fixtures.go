@@ -26,3 +26,6 @@ var UserDataGpgKey string
 
 //go:embed UserDataPinnedDeps.yaml
 var UserDataPinnedDeps string
+
+//go:embed UserDataPinnedDepsWithFallback.yaml
+var UserDataPinnedDepsWithFallback string

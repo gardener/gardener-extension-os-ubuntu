@@ -338,15 +338,15 @@ func (a *actuator) generateInstallDependenciesScript() (string, error) {
 					Version: dep.Version,
 					Hold:    dep.Hold,
 				}
-				break
+				continue
 			}
 
 			var constraints []string
 			if dep.UbuntuVersion != "" {
-				constraints = append(constraints, fmt.Sprintf(`(-z "$UBUNTU_VERSION" || "%s" == "$UBUNTU_VERSION")`, dep.UbuntuVersion))
+				constraints = append(constraints, fmt.Sprintf(`"%s" == "$UBUNTU_VERSION"`, dep.UbuntuVersion))
 			}
 			if dep.UbuntuBuildSerial != "" {
-				constraints = append(constraints, fmt.Sprintf(`(-z "$BUILD_SERIAL" || "%s" == "$BUILD_SERIAL")`, dep.UbuntuBuildSerial))
+				constraints = append(constraints, fmt.Sprintf(`"%s" == "$BUILD_SERIAL"`, dep.UbuntuBuildSerial))
 			}
 
 			instruction.Blocks = append(instruction.Blocks, conditionalBlock{

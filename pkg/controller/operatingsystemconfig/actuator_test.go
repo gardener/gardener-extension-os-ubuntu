@@ -264,6 +264,80 @@ lO49r1nayzQb8T14bZf2DdpOjXn8b5XrZQ9JZ5hZ1XyZ5XyZ5XyZ5XyZ5XyZ5XyZ
 				expectUserDataToMatch(userData, fixtures.UserDataPinnedDeps)
 			})
 		})
+
+		Describe("#Reconcile with pinned dependencies and fallback", func() {
+			It("should generate version and build serial specific install commands with a fallback", func() {
+				extensionConfig := Config{ExtensionConfig: &v1alpha1.ExtensionConfig{
+					DisableUnattendedUpgrades: ptr.To(false),
+					NTP: &v1alpha1.NTPConfig{
+						Daemon: v1alpha1.SystemdTimesyncd,
+					},
+					AptRepositories: []v1alpha1.AptRepository{
+						{Name: "docker", URI: "https://download.docker.com/linux/ubuntu"},
+					},
+					Dependencies: []v1alpha1.DependencyConfig{
+						{
+							Name:              "containerd.io",
+							Version:           "1.7.29-1~ubuntu.22.04~jammy",
+							UbuntuVersion:     "22.04",
+							UbuntuBuildSerial: "20250725",
+							Hold:              true,
+						},
+						{
+							Name:              "containerd.io",
+							Version:           "2.2.4-1~ubuntu.26.04~resolute",
+							UbuntuVersion:     "26.04",
+							UbuntuBuildSerial: "20260520",
+							Hold:              true,
+						},
+						{
+							Name: "containerd.io",
+						},
+					},
+				}}
+				actuator = NewActuator(mgr, extensionConfig)
+				userData, _, _, _, err := actuator.Reconcile(ctx, log, osc)
+				Expect(err).NotTo(HaveOccurred())
+
+				expectUserDataToMatch(userData, fixtures.UserDataPinnedDepsWithFallback)
+			})
+
+			It("should handle fallback regardless of dependency order", func() {
+				extensionConfig := Config{ExtensionConfig: &v1alpha1.ExtensionConfig{
+					DisableUnattendedUpgrades: ptr.To(false),
+					NTP: &v1alpha1.NTPConfig{
+						Daemon: v1alpha1.SystemdTimesyncd,
+					},
+					AptRepositories: []v1alpha1.AptRepository{
+						{Name: "docker", URI: "https://download.docker.com/linux/ubuntu"},
+					},
+					Dependencies: []v1alpha1.DependencyConfig{
+						{
+							Name: "containerd.io",
+						},
+						{
+							Name:              "containerd.io",
+							Version:           "1.7.29-1~ubuntu.22.04~jammy",
+							UbuntuVersion:     "22.04",
+							UbuntuBuildSerial: "20250725",
+							Hold:              true,
+						},
+						{
+							Name:              "containerd.io",
+							Version:           "2.2.4-1~ubuntu.26.04~resolute",
+							UbuntuVersion:     "26.04",
+							UbuntuBuildSerial: "20260520",
+							Hold:              true,
+						},
+					},
+				}}
+				actuator = NewActuator(mgr, extensionConfig)
+				userData, _, _, _, err := actuator.Reconcile(ctx, log, osc)
+				Expect(err).NotTo(HaveOccurred())
+
+				expectUserDataToMatch(userData, fixtures.UserDataPinnedDepsWithFallback)
+			})
+		})
 	})
 
 	When("purpose is 'reconcile'", func() {
