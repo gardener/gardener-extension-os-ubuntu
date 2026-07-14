@@ -111,7 +111,7 @@ func validateAPTConfig(config *configv1alpha1.APTConfig, fldPath *field.Path) fi
 }
 
 func validateAPTArchive(config []configv1alpha1.APTArchive, fldPath *field.Path, archiveName string) field.ErrorList {
-	validArchitectureNames := sets.New(configv1alpha1.Default, configv1alpha1.AMD64, configv1alpha1.ARM64)
+	validArchitectureNames := sets.New(configv1alpha1.ArchDefault, configv1alpha1.AMD64, configv1alpha1.ARM64)
 	allErrs := field.ErrorList{}
 	for _, configArchive := range config {
 		for _, arch := range configArchive.Arches {

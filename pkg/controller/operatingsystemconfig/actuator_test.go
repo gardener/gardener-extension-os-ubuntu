@@ -134,13 +134,13 @@ var _ = Describe("Actuator", func() {
 						PreserveSourcesList: false,
 						Primary: []v1alpha1.APTArchive{
 							v1alpha1.APTArchive{
-								Arches: []v1alpha1.Architecture{v1alpha1.Default},
+								Arches: []v1alpha1.Architecture{v1alpha1.ArchDefault},
 								URI:    "http://packages.ubuntu-mirror.example.com/apt-mirror/ubuntu",
 							},
 						},
 						Security: []v1alpha1.APTArchive{
 							v1alpha1.APTArchive{
-								Arches: []v1alpha1.Architecture{v1alpha1.Default},
+								Arches: []v1alpha1.Architecture{v1alpha1.ArchDefault},
 								URI:    "http://packages.ubuntu-mirror.example.com/apt-mirror/ubuntu",
 							},
 						},
@@ -227,6 +227,34 @@ lO49r1nayzQb8T14bZf2DdpOjXn8b5XrZQ9JZ5hZ1XyZ5XyZ5XyZ5XyZ5XyZ5XyZ
 				Expect(err).NotTo(HaveOccurred())
 
 				expectUserDataToMatch(userData, fixtures.UserDataGpgKey)
+			})
+		})
+
+		Describe("#Reconcile with disabled dependency", func() {
+			It("should not install disabled packages", func() {
+				extensionConfig := Config{ExtensionConfig: &v1alpha1.ExtensionConfig{
+					DisableUnattendedUpgrades: ptr.To(false),
+					NTP: &v1alpha1.NTPConfig{
+						Daemon: v1alpha1.SystemdTimesyncd,
+					},
+					Dependencies: []v1alpha1.DependencyConfig{
+						{Name: "containerd"},
+						{Name: "jq"},
+						{Name: "logrotate"},
+						{Name: "nfs-common"},
+						{Name: "policykit-1"},
+						{Name: "runc"},
+						{Name: "socat", Disabled: true},
+					},
+				}}
+				actuator = NewActuator(mgr, extensionConfig)
+				userData, extensionUnits, extensionFiles, inplaceUpdateStatus, err := actuator.Reconcile(ctx, log, osc)
+				Expect(err).NotTo(HaveOccurred())
+
+				expectUserDataToMatch(userData, fixtures.UserDataDisabledDependency)
+				Expect(extensionUnits).To(BeEmpty())
+				Expect(extensionFiles).To(BeEmpty())
+				Expect(inplaceUpdateStatus).To(BeNil())
 			})
 		})
 

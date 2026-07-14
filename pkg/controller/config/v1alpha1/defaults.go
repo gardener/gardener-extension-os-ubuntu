@@ -6,6 +6,7 @@ package v1alpha1
 
 import (
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/utils/ptr"
 )
 
@@ -21,18 +22,33 @@ func SetDefaults_ExtensionConfig(obj *ExtensionConfig) {
 		obj.DisableUnattendedUpgrades = ptr.To(false)
 	}
 
-	if len(obj.Dependencies) == 0 {
-		obj.Dependencies = []DependencyConfig{
-			{Name: "containerd"},
-			{Name: "runc"},
-			{Name: "socat"},
-			{Name: "nfs-common"},
-			{Name: "logrotate"},
-			{Name: "jq"},
-			{Name: "policykit-1"},
+	requiredPackages := []string{
+		"containerd",
+		"runc",
+		"socat",
+		"nfs-common",
+		"logrotate",
+		"jq",
+		"policykit-1",
+	}
+
+	disabledPackages := sets.New[string]()
+	hasUnconstrained := sets.New[string]()
+	for _, dep := range obj.Dependencies {
+		if dep.Disabled {
+			disabledPackages.Insert(dep.Name)
+		} else if dep.UbuntuVersion == "" && dep.UbuntuBuildSerial == "" {
+			hasUnconstrained.Insert(dep.Name)
+		}
+	}
+
+	for _, pkg := range requiredPackages {
+		if !disabledPackages.Has(pkg) && !hasUnconstrained.Has(pkg) {
+			obj.Dependencies = append(obj.Dependencies, DependencyConfig{Name: pkg})
 		}
 	}
 }
+
 func SetDefaults_NTPConfig(obj *NTPConfig) {
 	if obj.Daemon == "" {
 		obj.Daemon = SystemdTimesyncd

@@ -29,3 +29,6 @@ var UserDataPinnedDeps string
 
 //go:embed UserDataPinnedDepsWithFallback.yaml
 var UserDataPinnedDepsWithFallback string
+
+//go:embed UserDataDisabledDependency.yaml
+var UserDataDisabledDependency string

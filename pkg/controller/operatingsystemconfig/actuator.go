@@ -315,6 +315,9 @@ func (a *actuator) generateInstallDependenciesScript() (string, error) {
 	// Group dependencies by package name
 	byName := make(map[string][]configv1alpha1.DependencyConfig)
 	for _, dep := range a.extensionConfig.Dependencies {
+		if dep.Disabled {
+			continue
+		}
 		byName[dep.Name] = append(byName[dep.Name], dep)
 	}
 

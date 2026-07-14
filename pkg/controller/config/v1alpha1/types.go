@@ -85,6 +85,10 @@ type DependencyConfig struct {
 	// apt upgrade does not update it.
 	// +optional
 	Hold bool `json:"hold,omitempty"`
+	// Disabled, if true, excludes this package from installation entirely.
+	// For required packages, no fallback entry is added either.
+	// +optional
+	Disabled bool `json:"disabled,omitempty"`
 }
 
 // NTPConfig General NTP Config for either systemd-timesyncd or ntpd
@@ -120,7 +124,7 @@ type APTArchive struct {
 type Architecture string
 
 const (
-	AMD64   Architecture = constants.ArchitectureAMD64
-	ARM64   Architecture = constants.ArchitectureARM64
-	Default Architecture = "default"
+	AMD64       Architecture = constants.ArchitectureAMD64
+	ARM64       Architecture = constants.ArchitectureARM64
+	ArchDefault Architecture = "default"
 )
