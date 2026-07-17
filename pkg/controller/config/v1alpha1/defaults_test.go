@@ -143,6 +143,23 @@ var _ = Describe("SetDefaults_ExtensionConfig", func() {
 		})
 	})
 
+	Context("with version-specific disabled required package", func() {
+		BeforeEach(func() {
+			config.Dependencies = []DependencyConfig{
+				{Name: "policykit-1", UbuntuVersion: "26.04", Disabled: true},
+			}
+		})
+
+		It("should not add unconstrained fallback for version-specific disabled required package", func() {
+			Expect(config.Dependencies).To(HaveLen(7))
+
+			policykitEntries := filterByName(config.Dependencies, "policykit-1")
+			Expect(policykitEntries).To(HaveLen(1))
+			Expect(policykitEntries[0].Disabled).To(BeTrue())
+			Expect(policykitEntries[0].UbuntuVersion).To(Equal("26.04"))
+		})
+	})
+
 	Context("with disabled required package and pinned entry", func() {
 		BeforeEach(func() {
 			config.Dependencies = []DependencyConfig{

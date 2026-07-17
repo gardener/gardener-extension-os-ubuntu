@@ -34,7 +34,11 @@ if [[ {{ $block.Condition }} ]]; then
 {{- else }}
 elif [[ {{ $block.Condition }} ]]; then
 {{- end }}
+{{- if $block.Disabled }}
+  echo "Skipping disabled package {{ $name }} (UBUNTU_VERSION=$UBUNTU_VERSION, BUILD_SERIAL=$BUILD_SERIAL)"
+{{- else }}
   install_package "{{ $name }}" "{{ $block.Command.Version }}" {{ $block.Command.Hold }}
+{{- end }}
 {{- end }}
 {{- if .Fallback }}
 else

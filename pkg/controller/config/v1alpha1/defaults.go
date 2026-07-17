@@ -32,18 +32,18 @@ func SetDefaults_ExtensionConfig(obj *ExtensionConfig) {
 		"policykit-1",
 	}
 
-	disabledPackages := sets.New[string]()
-	hasUnconstrained := sets.New[string]()
+	// Skip adding defaults for packages that are already unconstrained (any version)
+	// or explicitly disabled (version-specific opt-out)
+	skipDefaults := sets.New[string]()
 	for _, dep := range obj.Dependencies {
-		if dep.Disabled {
-			disabledPackages.Insert(dep.Name)
-		} else if dep.UbuntuVersion == "" && dep.UbuntuBuildSerial == "" {
-			hasUnconstrained.Insert(dep.Name)
+		isUnconstrained := dep.UbuntuVersion == "" && dep.UbuntuBuildSerial == ""
+		if isUnconstrained || dep.Disabled {
+			skipDefaults.Insert(dep.Name)
 		}
 	}
 
 	for _, pkg := range requiredPackages {
-		if !disabledPackages.Has(pkg) && !hasUnconstrained.Has(pkg) {
+		if !skipDefaults.Has(pkg) {
 			obj.Dependencies = append(obj.Dependencies, DependencyConfig{Name: pkg})
 		}
 	}

@@ -230,6 +230,90 @@ lO49r1nayzQb8T14bZf2DdpOjXn8b5XrZQ9JZ5hZ1XyZ5XyZ5XyZ5XyZ5XyZ5XyZ
 			})
 		})
 
+		Describe("#Reconcile with globally disabled dependency", func() {
+			It("should completely skip globally disabled packages", func() {
+				extensionConfig := Config{ExtensionConfig: &v1alpha1.ExtensionConfig{
+					DisableUnattendedUpgrades: ptr.To(false),
+					NTP: &v1alpha1.NTPConfig{
+						Daemon: v1alpha1.SystemdTimesyncd,
+					},
+					Dependencies: []v1alpha1.DependencyConfig{
+						{Name: "containerd"},
+						{Name: "jq"},
+						{Name: "logrotate"},
+						{Name: "nfs-common"},
+						{Name: "policykit-1"},
+						{Name: "runc"},
+						{Name: "socat", Disabled: true},
+					},
+				}}
+				actuator = NewActuator(mgr, extensionConfig)
+				userData, extensionUnits, extensionFiles, inplaceUpdateStatus, err := actuator.Reconcile(ctx, log, osc)
+				Expect(err).NotTo(HaveOccurred())
+
+				expectUserDataToMatch(userData, fixtures.UserDataGloballyDisabledDependency)
+				Expect(extensionUnits).To(BeEmpty())
+				Expect(extensionFiles).To(BeEmpty())
+				Expect(inplaceUpdateStatus).To(BeNil())
+			})
+		})
+
+		Describe("#Reconcile with version-specific disabled dependency", func() {
+			It("should skip disabled package only on specified version", func() {
+				extensionConfig := Config{ExtensionConfig: &v1alpha1.ExtensionConfig{
+					DisableUnattendedUpgrades: ptr.To(false),
+					NTP: &v1alpha1.NTPConfig{
+						Daemon: v1alpha1.SystemdTimesyncd,
+					},
+					Dependencies: []v1alpha1.DependencyConfig{
+						{Name: "containerd"},
+						{Name: "jq"},
+						{Name: "logrotate"},
+						{Name: "nfs-common"},
+						{Name: "policykit-1", UbuntuVersion: "22.04", Disabled: true},
+						{Name: "runc"},
+						{Name: "socat"},
+					},
+				}}
+				actuator = NewActuator(mgr, extensionConfig)
+				userData, extensionUnits, extensionFiles, inplaceUpdateStatus, err := actuator.Reconcile(ctx, log, osc)
+				Expect(err).NotTo(HaveOccurred())
+
+				expectUserDataToMatch(userData, fixtures.UserDataVersionSpecificDisabled)
+				Expect(extensionUnits).To(BeEmpty())
+				Expect(extensionFiles).To(BeEmpty())
+				Expect(inplaceUpdateStatus).To(BeNil())
+			})
+		})
+
+		Describe("#Reconcile with version and build serial disabled dependency", func() {
+			It("should skip disabled package only on specified version and build serial", func() {
+				extensionConfig := Config{ExtensionConfig: &v1alpha1.ExtensionConfig{
+					DisableUnattendedUpgrades: ptr.To(false),
+					NTP: &v1alpha1.NTPConfig{
+						Daemon: v1alpha1.SystemdTimesyncd,
+					},
+					Dependencies: []v1alpha1.DependencyConfig{
+						{Name: "containerd"},
+						{Name: "jq"},
+						{Name: "logrotate"},
+						{Name: "nfs-common"},
+						{Name: "policykit-1", UbuntuVersion: "22.04", UbuntuBuildSerial: "20250725", Disabled: true},
+						{Name: "runc"},
+						{Name: "socat"},
+					},
+				}}
+				actuator = NewActuator(mgr, extensionConfig)
+				userData, extensionUnits, extensionFiles, inplaceUpdateStatus, err := actuator.Reconcile(ctx, log, osc)
+				Expect(err).NotTo(HaveOccurred())
+
+				expectUserDataToMatch(userData, fixtures.UserDataVersionAndBuildSerialDisabled)
+				Expect(extensionUnits).To(BeEmpty())
+				Expect(extensionFiles).To(BeEmpty())
+				Expect(inplaceUpdateStatus).To(BeNil())
+			})
+		})
+
 		Describe("#Reconcile with disabled dependency", func() {
 			It("should not install disabled packages", func() {
 				extensionConfig := Config{ExtensionConfig: &v1alpha1.ExtensionConfig{

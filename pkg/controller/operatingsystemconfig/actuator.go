@@ -47,6 +47,7 @@ type packageInstruction struct {
 type conditionalBlock struct {
 	Condition string
 	Command   installCommand
+	Disabled  bool
 }
 
 type installCommand struct {
@@ -312,12 +313,8 @@ chmod 0644 /etc/apt/apt.conf.d/99-auto-upgrades.conf
 }
 
 func (a *actuator) generateInstallDependenciesScript() (string, error) {
-	// Group dependencies by package name
 	byName := make(map[string][]configv1alpha1.DependencyConfig)
 	for _, dep := range a.extensionConfig.Dependencies {
-		if dep.Disabled {
-			continue
-		}
 		byName[dep.Name] = append(byName[dep.Name], dep)
 	}
 
@@ -329,38 +326,10 @@ func (a *actuator) generateInstallDependenciesScript() (string, error) {
 
 	var instructions []packageInstruction
 
-	// Build data model for the template
 	for _, name := range names {
-		instruction := packageInstruction{Name: name}
-
-		for _, dep := range byName[name] {
-			isUnconstrained := dep.UbuntuVersion == "" && dep.UbuntuBuildSerial == ""
-
-			if isUnconstrained {
-				instruction.Fallback = &installCommand{
-					Version: dep.Version,
-					Hold:    dep.Hold,
-				}
-				continue
-			}
-
-			var constraints []string
-			if dep.UbuntuVersion != "" {
-				constraints = append(constraints, fmt.Sprintf(`"%s" == "$UBUNTU_VERSION"`, dep.UbuntuVersion))
-			}
-			if dep.UbuntuBuildSerial != "" {
-				constraints = append(constraints, fmt.Sprintf(`"%s" == "$BUILD_SERIAL"`, dep.UbuntuBuildSerial))
-			}
-
-			instruction.Blocks = append(instruction.Blocks, conditionalBlock{
-				Condition: strings.Join(constraints, " && "),
-				Command: installCommand{
-					Version: dep.Version,
-					Hold:    dep.Hold,
-				},
-			})
+		if instruction := buildPackageInstruction(name, byName[name]); instruction != nil {
+			instructions = append(instructions, *instruction)
 		}
-		instructions = append(instructions, instruction)
 	}
 
 	var sb strings.Builder
@@ -370,6 +339,70 @@ func (a *actuator) generateInstallDependenciesScript() (string, error) {
 	}
 
 	return strings.TrimSpace(sb.String()), nil
+}
+
+// buildPackageInstruction creates a template instruction for a single package.
+// Returns nil if all entries are disabled unconstrained (package explicitly opted out).
+func buildPackageInstruction(name string, deps []configv1alpha1.DependencyConfig) *packageInstruction {
+	instruction := packageInstruction{Name: name}
+	hasActiveEntry := false
+	hasConstrainedDisabled := false
+
+	for _, dep := range deps {
+		// Unconstrained entries apply to all versions; use as fallback if not disabled
+		if isUnconstrained(dep) {
+			if !dep.Disabled {
+				instruction.Fallback = &installCommand{
+					Version: dep.Version,
+					Hold:    dep.Hold,
+				}
+				hasActiveEntry = true
+			}
+			continue
+		}
+
+		// Constrained entries generate version-specific conditional blocks
+		hasActiveEntry = true
+		if dep.Disabled {
+			hasConstrainedDisabled = true
+		}
+
+		instruction.Blocks = append(instruction.Blocks, conditionalBlock{
+			Condition: buildCondition(dep),
+			Command: installCommand{
+				Version: dep.Version,
+				Hold:    dep.Hold,
+			},
+			Disabled: dep.Disabled,
+		})
+	}
+
+	// Skip if all entries are disabled unconstrained (explicit opt-out)
+	if !hasActiveEntry {
+		return nil
+	}
+
+	// Add empty fallback if constrained disabled exists but no unconstrained fallback
+	if hasConstrainedDisabled && instruction.Fallback == nil {
+		instruction.Fallback = &installCommand{}
+	}
+
+	return &instruction
+}
+
+func buildCondition(dep configv1alpha1.DependencyConfig) string {
+	var constraints []string
+	if dep.UbuntuVersion != "" {
+		constraints = append(constraints, fmt.Sprintf(`"%s" == "$UBUNTU_VERSION"`, dep.UbuntuVersion))
+	}
+	if dep.UbuntuBuildSerial != "" {
+		constraints = append(constraints, fmt.Sprintf(`"%s" == "$BUILD_SERIAL"`, dep.UbuntuBuildSerial))
+	}
+	return strings.Join(constraints, " && ")
+}
+
+func isUnconstrained(dep configv1alpha1.DependencyConfig) bool {
+	return dep.UbuntuVersion == "" && dep.UbuntuBuildSerial == ""
 }
 
 // configureNTPDaemon configures the VM either with systemd-timesyncd or ntpd as the time syncing client

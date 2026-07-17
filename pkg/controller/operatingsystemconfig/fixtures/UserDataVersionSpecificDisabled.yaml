@@ -1,0 +1,86 @@
+#cloud-config-archive
+- content: |
+    #!/bin/bash
+    if [ -f "/var/lib/osc/provision-osc-applied" ]; then
+      echo "Provision OSC already applied, exiting..."
+      exit 0
+    fi
+
+    mkdir -p /etc/cloud/cloud.cfg.d/
+    cat <<EOF > /etc/cloud/cloud.cfg.d/custom-networking.cfg
+    network:
+      config: disabled
+    EOF
+    chmod 0644 /etc/cloud/cloud.cfg.d/custom-networking.cfg
+
+    mkdir -p "/some"
+
+    cat << EOF | base64 -d > "/some/file"
+    YmFy
+    EOF
+
+
+    cat << EOF | base64 -d > "/etc/systemd/system/some-unit"
+    Zm9v
+    EOF
+    UBUNTU_VERSION=""
+    BUILD_SERIAL=""
+    if [ -f /etc/os-release ]; then
+      UBUNTU_VERSION=$(grep '^VERSION_ID=' /etc/os-release | cut -d= -f2 | tr -d '"')
+    fi
+    if [ -f /etc/cloud/build.info ]; then
+      BUILD_SERIAL=$(grep '^serial:' /etc/cloud/build.info | awk '{print $2}')
+    fi
+
+    until apt-get update -qq; do sleep 1; done
+
+    install_package() {
+      local name=$1
+      local version=$2
+      local hold=$3
+
+      if [ -n "$version" ]; then
+        until apt-get install --no-upgrade -qqy "${name}=${version}"; do sleep 1; done
+      else
+        until apt-get install --no-upgrade -qqy "${name}"; do sleep 1; done
+      fi
+
+      if [ "$hold" = "true" ]; then
+        apt-mark hold "$name"
+      fi
+    }
+
+    install_package "containerd" "" false
+    install_package "jq" "" false
+    install_package "logrotate" "" false
+    install_package "nfs-common" "" false
+    if [[ "22.04" == "$UBUNTU_VERSION" ]]; then
+      echo "Skipping disabled package policykit-1 (UBUNTU_VERSION=$UBUNTU_VERSION, BUILD_SERIAL=$BUILD_SERIAL)"
+    else
+      install_package "policykit-1" "" false
+    fi
+    install_package "runc" "" false
+    install_package "socat" "" false
+
+    if [ ! -s /etc/containerd/config.toml ]; then
+      mkdir -p /etc/containerd/
+      containerd config default > /etc/containerd/config.toml
+      chmod 0644 /etc/containerd/config.toml
+    fi
+
+    mkdir -p /etc/systemd/system/containerd.service.d
+    cat <<EOF > /etc/systemd/system/containerd.service.d/11-exec_config.conf
+    [Service]
+    ExecStart=
+    ExecStart=/usr/bin/containerd --config=/etc/containerd/config.toml
+    EOF
+    chmod 0644 /etc/systemd/system/containerd.service.d/11-exec_config.conf
+
+    systemctl daemon-reload
+    systemctl enable containerd && systemctl restart containerd
+    systemctl enable 'some-unit' && systemctl restart --no-block 'some-unit'
+
+
+    mkdir -p /var/lib/osc
+    touch /var/lib/osc/provision-osc-applied
+  type: text/x-shellscript
