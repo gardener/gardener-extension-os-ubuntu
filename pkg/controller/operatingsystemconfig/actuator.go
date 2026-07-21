@@ -141,11 +141,9 @@ chmod 0644 /etc/cloud/cloud.cfg.d/custom-networking.cfg
 ` + writeUnitsToDiskScript + `
 ` + installScript + `
 
-if [ ! -s /etc/containerd/config.toml ]; then
-  mkdir -p /etc/containerd/
-  containerd config default > /etc/containerd/config.toml
-  chmod 0644 /etc/containerd/config.toml
-fi
+mkdir -p /etc/containerd/
+containerd config default > /etc/containerd/config.toml
+chmod 0644 /etc/containerd/config.toml
 
 mkdir -p /etc/systemd/system/containerd.service.d
 cat <<EOF > /etc/systemd/system/containerd.service.d/11-exec_config.conf
