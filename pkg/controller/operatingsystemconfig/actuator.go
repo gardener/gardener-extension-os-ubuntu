@@ -47,7 +47,6 @@ type packageInstruction struct {
 type conditionalBlock struct {
 	Condition string
 	Command   installCommand
-	Disabled  bool
 }
 
 type installCommand struct {
@@ -340,29 +339,16 @@ func (a *actuator) generateInstallDependenciesScript() (string, error) {
 }
 
 // buildPackageInstruction creates a template instruction for a single package.
-// Returns nil if all entries are disabled unconstrained (package explicitly opted out).
 func buildPackageInstruction(name string, deps []configv1alpha1.DependencyConfig) *packageInstruction {
 	instruction := packageInstruction{Name: name}
-	hasActiveEntry := false
-	hasConstrainedDisabled := false
 
 	for _, dep := range deps {
-		// Unconstrained entries apply to all versions; use as fallback if not disabled
 		if isUnconstrained(dep) {
-			if !dep.Disabled {
-				instruction.Fallback = &installCommand{
-					Version: dep.Version,
-					Hold:    dep.Hold,
-				}
-				hasActiveEntry = true
+			instruction.Fallback = &installCommand{
+				Version: dep.Version,
+				Hold:    dep.Hold,
 			}
 			continue
-		}
-
-		// Constrained entries generate version-specific conditional blocks
-		hasActiveEntry = true
-		if dep.Disabled {
-			hasConstrainedDisabled = true
 		}
 
 		instruction.Blocks = append(instruction.Blocks, conditionalBlock{
@@ -371,18 +357,7 @@ func buildPackageInstruction(name string, deps []configv1alpha1.DependencyConfig
 				Version: dep.Version,
 				Hold:    dep.Hold,
 			},
-			Disabled: dep.Disabled,
 		})
-	}
-
-	// Skip if all entries are disabled unconstrained (explicit opt-out)
-	if !hasActiveEntry {
-		return nil
-	}
-
-	// Add empty fallback if constrained disabled exists but no unconstrained fallback
-	if hasConstrainedDisabled && instruction.Fallback == nil {
-		instruction.Fallback = &installCommand{}
 	}
 
 	return &instruction

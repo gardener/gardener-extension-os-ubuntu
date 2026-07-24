@@ -50,23 +50,20 @@
       fi
     }
 
-    install_package "containerd" "" false
-    install_package "jq" "" false
-    install_package "logrotate" "" false
-    install_package "nfs-common" "" false
-    if [[ "22.04" == "$UBUNTU_VERSION" && "20250725" == "$BUILD_SERIAL" ]]; then
-      echo "Skipping disabled package policykit-1 (UBUNTU_VERSION=$UBUNTU_VERSION, BUILD_SERIAL=$BUILD_SERIAL)"
+    if [[ "26.04" == "$UBUNTU_VERSION" ]]; then
+      install_package "containerd" "2.2.4-1~ubuntu.26.04~resolute" false
     else
-      install_package "policykit-1" "" false
+      echo "No matching pinned dependency for containerd (UBUNTU_VERSION=$UBUNTU_VERSION, BUILD_SERIAL=$BUILD_SERIAL)" >&2
     fi
-    install_package "runc" "" false
-    install_package "socat" "" false
+    if [[ "22.04" == "$UBUNTU_VERSION" ]]; then
+      install_package "containerd.io" "1.7.29-1~ubuntu.22.04~jammy" false
+    else
+      echo "No matching pinned dependency for containerd.io (UBUNTU_VERSION=$UBUNTU_VERSION, BUILD_SERIAL=$BUILD_SERIAL)" >&2
+    fi
 
-    if [ ! -s /etc/containerd/config.toml ]; then
-      mkdir -p /etc/containerd/
-      containerd config default > /etc/containerd/config.toml
-      chmod 0644 /etc/containerd/config.toml
-    fi
+    mkdir -p /etc/containerd/
+    containerd config default > /etc/containerd/config.toml
+    chmod 0644 /etc/containerd/config.toml
 
     mkdir -p /etc/systemd/system/containerd.service.d
     cat <<EOF > /etc/systemd/system/containerd.service.d/11-exec_config.conf

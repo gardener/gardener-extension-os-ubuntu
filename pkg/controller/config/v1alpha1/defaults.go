@@ -6,7 +6,6 @@ package v1alpha1
 
 import (
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/utils/ptr"
 )
 
@@ -22,29 +21,15 @@ func SetDefaults_ExtensionConfig(obj *ExtensionConfig) {
 		obj.DisableUnattendedUpgrades = ptr.To(false)
 	}
 
-	requiredPackages := []string{
-		"containerd",
-		"runc",
-		"socat",
-		"nfs-common",
-		"logrotate",
-		"jq",
-		"policykit-1",
-	}
-
-	// Skip adding defaults for packages that are already unconstrained (any version)
-	// or explicitly disabled (version-specific opt-out)
-	skipDefaults := sets.New[string]()
-	for _, dep := range obj.Dependencies {
-		isUnconstrained := dep.UbuntuVersion == "" && dep.UbuntuBuildSerial == ""
-		if isUnconstrained || dep.Disabled {
-			skipDefaults.Insert(dep.Name)
-		}
-	}
-
-	for _, pkg := range requiredPackages {
-		if !skipDefaults.Has(pkg) {
-			obj.Dependencies = append(obj.Dependencies, DependencyConfig{Name: pkg})
+	if obj.Dependencies == nil {
+		obj.Dependencies = []DependencyConfig{
+			{Name: "containerd"},
+			{Name: "runc"},
+			{Name: "socat"},
+			{Name: "nfs-common"},
+			{Name: "logrotate"},
+			{Name: "jq"},
+			{Name: "policykit-1"},
 		}
 	}
 }

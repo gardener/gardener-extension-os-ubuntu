@@ -56,14 +56,11 @@
       install_package "containerd.io" "2.2.4-1~ubuntu.26.04~resolute" true
     else
       echo "No matching pinned dependency for containerd.io (UBUNTU_VERSION=$UBUNTU_VERSION, BUILD_SERIAL=$BUILD_SERIAL)" >&2
-      exit 1
     fi
 
-    if [ ! -s /etc/containerd/config.toml ]; then
-      mkdir -p /etc/containerd/
-      containerd config default > /etc/containerd/config.toml
-      chmod 0644 /etc/containerd/config.toml
-    fi
+    mkdir -p /etc/containerd/
+    containerd config default > /etc/containerd/config.toml
+    chmod 0644 /etc/containerd/config.toml
 
     mkdir -p /etc/systemd/system/containerd.service.d
     cat <<EOF > /etc/systemd/system/containerd.service.d/11-exec_config.conf

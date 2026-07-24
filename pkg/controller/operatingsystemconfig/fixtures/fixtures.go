@@ -30,14 +30,5 @@ var UserDataPinnedDeps string
 //go:embed UserDataPinnedDepsWithFallback.yaml
 var UserDataPinnedDepsWithFallback string
 
-//go:embed UserDataDisabledDependency.yaml
-var UserDataDisabledDependency string
-
-//go:embed UserDataVersionSpecificDisabled.yaml
-var UserDataVersionSpecificDisabled string
-
-//go:embed UserDataVersionAndBuildSerialDisabled.yaml
-var UserDataVersionAndBuildSerialDisabled string
-
-//go:embed UserDataGloballyDisabledDependency.yaml
-var UserDataGloballyDisabledDependency string
+//go:embed UserDataPinnedDepsDifferentNames.yaml
+var UserDataPinnedDepsDifferentNames string

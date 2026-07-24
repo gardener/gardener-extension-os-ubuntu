@@ -20,7 +20,7 @@ var _ = Describe("SetDefaults_ExtensionConfig", func() {
 		SetDefaults_ExtensionConfig(config)
 	})
 
-	Context("with empty dependencies", func() {
+	Context("with nil dependencies", func() {
 		It("should add all required packages as unconstrained", func() {
 			Expect(config.Dependencies).To(HaveLen(7))
 
@@ -35,7 +35,17 @@ var _ = Describe("SetDefaults_ExtensionConfig", func() {
 		})
 	})
 
-	Context("with pinned dependency for required package", func() {
+	Context("with explicitly empty dependencies", func() {
+		BeforeEach(func() {
+			config.Dependencies = []DependencyConfig{}
+		})
+
+		It("should not add any defaults", func() {
+			Expect(config.Dependencies).To(BeEmpty())
+		})
+	})
+
+	Context("with pinned dependency for containerd", func() {
 		BeforeEach(func() {
 			config.Dependencies = []DependencyConfig{
 				{
@@ -47,30 +57,20 @@ var _ = Describe("SetDefaults_ExtensionConfig", func() {
 			}
 		})
 
-		It("should add unconstrained fallback and other required packages", func() {
-			Expect(config.Dependencies).To(HaveLen(8))
-
-			containerdEntries := filterByName(config.Dependencies, "containerd")
-			Expect(containerdEntries).To(HaveLen(2))
-			Expect(containerdEntries).To(ContainElement(SatisfyAll(
-				WithTransform(func(d DependencyConfig) string { return d.UbuntuVersion }, BeEmpty()),
-				WithTransform(func(d DependencyConfig) string { return d.UbuntuBuildSerial }, BeEmpty()),
-			)))
+		It("should not add any defaults", func() {
+			Expect(config.Dependencies).To(HaveLen(1))
 		})
 	})
 
-	Context("with unconstrained dependency for required package", func() {
+	Context("with unconstrained dependency for containerd", func() {
 		BeforeEach(func() {
 			config.Dependencies = []DependencyConfig{
 				{Name: "containerd"},
 			}
 		})
 
-		It("should not add duplicate and should add other required packages", func() {
-			Expect(config.Dependencies).To(HaveLen(7))
-
-			containerdEntries := filterByName(config.Dependencies, "containerd")
-			Expect(containerdEntries).To(HaveLen(1))
+		It("should not add any defaults", func() {
+			Expect(config.Dependencies).To(HaveLen(1))
 		})
 	})
 
@@ -81,9 +81,9 @@ var _ = Describe("SetDefaults_ExtensionConfig", func() {
 			}
 		})
 
-		It("should preserve custom package and add required packages", func() {
-			Expect(config.Dependencies).To(HaveLen(8))
-			Expect(filterByName(config.Dependencies, "custom-package")).To(HaveLen(1))
+		It("should not add any defaults", func() {
+			Expect(config.Dependencies).To(HaveLen(1))
+			Expect(config.Dependencies[0].Name).To(Equal("custom-package"))
 		})
 	})
 
@@ -99,12 +99,9 @@ var _ = Describe("SetDefaults_ExtensionConfig", func() {
 			}
 		})
 
-		It("should not add unconstrained fallback for custom package", func() {
-			Expect(config.Dependencies).To(HaveLen(8))
-
-			customEntries := filterByName(config.Dependencies, "custom-package")
-			Expect(customEntries).To(HaveLen(1))
-			Expect(customEntries[0].UbuntuVersion).NotTo(BeEmpty())
+		It("should not add any defaults", func() {
+			Expect(config.Dependencies).To(HaveLen(1))
+			Expect(config.Dependencies[0].UbuntuVersion).NotTo(BeEmpty())
 		})
 	})
 
@@ -118,79 +115,9 @@ var _ = Describe("SetDefaults_ExtensionConfig", func() {
 			}
 		})
 
-		It("should not add additional unconstrained fallback", func() {
-			Expect(config.Dependencies).To(HaveLen(8))
-
-			customEntries := filterByName(config.Dependencies, "custom-package")
-			Expect(customEntries).To(HaveLen(1))
-			Expect(customEntries[0].Version).To(Equal("1.0.0"))
-		})
-	})
-
-	Context("with disabled required package", func() {
-		BeforeEach(func() {
-			config.Dependencies = []DependencyConfig{
-				{Name: "socat", Disabled: true},
-			}
-		})
-
-		It("should not add fallback for disabled required package", func() {
-			Expect(config.Dependencies).To(HaveLen(7))
-
-			socatEntries := filterByName(config.Dependencies, "socat")
-			Expect(socatEntries).To(HaveLen(1))
-			Expect(socatEntries[0].Disabled).To(BeTrue())
-		})
-	})
-
-	Context("with version-specific disabled required package", func() {
-		BeforeEach(func() {
-			config.Dependencies = []DependencyConfig{
-				{Name: "policykit-1", UbuntuVersion: "26.04", Disabled: true},
-			}
-		})
-
-		It("should not add unconstrained fallback for version-specific disabled required package", func() {
-			Expect(config.Dependencies).To(HaveLen(7))
-
-			policykitEntries := filterByName(config.Dependencies, "policykit-1")
-			Expect(policykitEntries).To(HaveLen(1))
-			Expect(policykitEntries[0].Disabled).To(BeTrue())
-			Expect(policykitEntries[0].UbuntuVersion).To(Equal("26.04"))
-		})
-	})
-
-	Context("with disabled required package and pinned entry", func() {
-		BeforeEach(func() {
-			config.Dependencies = []DependencyConfig{
-				{
-					Name:              "containerd",
-					Version:           "1.7.29-1",
-					UbuntuVersion:     "22.04",
-					UbuntuBuildSerial: "20250725",
-				},
-				{Name: "containerd", Disabled: true},
-			}
-		})
-
-		It("should not add unconstrained fallback for disabled required package", func() {
-			containerdEntries := filterByName(config.Dependencies, "containerd")
-			Expect(containerdEntries).To(HaveLen(2))
-			Expect(containerdEntries).NotTo(ContainElement(SatisfyAll(
-				WithTransform(func(d DependencyConfig) string { return d.UbuntuVersion }, BeEmpty()),
-				WithTransform(func(d DependencyConfig) string { return d.UbuntuBuildSerial }, BeEmpty()),
-				WithTransform(func(d DependencyConfig) bool { return !d.Disabled }, BeTrue()),
-			)))
+		It("should not add any defaults", func() {
+			Expect(config.Dependencies).To(HaveLen(1))
+			Expect(config.Dependencies[0].Version).To(Equal("1.0.0"))
 		})
 	})
 })
-
-func filterByName(deps []DependencyConfig, name string) []DependencyConfig {
-	var result []DependencyConfig
-	for _, dep := range deps {
-		if dep.Name == name {
-			result = append(result, dep)
-		}
-	}
-	return result
-}
