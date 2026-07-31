@@ -149,7 +149,7 @@ boolean
 
 <p>
 AptRepository describes an additional apt repository to configure via
-cloud-init. Name "docker" uses the embedded Docker GPG key when Key is empty.
+cloud-init.
 </p>
 
 <table>
@@ -192,7 +192,7 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>Key is the ASCII-armored GPG key used to sign the repository. If empty,<br />a well-known key may be used for repositories with a matching Name<br />(e.g. "docker").</p>
+<p>Key is the ASCII-armored GPG key used to sign the repository. If empty,<br />the repository is configured without GPG signature verification.</p>
 </td>
 </tr>
 <tr>
@@ -387,7 +387,7 @@ boolean
 </td>
 <td>
 <em>(Optional)</em>
-<p>AptRepositories is the list of additional apt repositories to configure<br />via cloud-init. Defaults to the official Docker apt repository so that<br />containerd.io can be installed instead of the Ubuntu containerd package.</p>
+<p>AptRepositories is the list of additional apt repositories to configure<br />via cloud-init.</p>
 </td>
 </tr>
 <tr>
