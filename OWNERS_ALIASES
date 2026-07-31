@@ -8,6 +8,7 @@ aliases:
   - robinschneider
   - Roncossek
   - Vincinator
+  - MartinWeindel
   gardener-extension-os-ubuntu-approvers:
   - dergeberl
   - MrBatschner
@@ -15,3 +16,4 @@ aliases:
   - robinschneider
   - Roncossek
   - Vincinator
+  - MartinWeindel
