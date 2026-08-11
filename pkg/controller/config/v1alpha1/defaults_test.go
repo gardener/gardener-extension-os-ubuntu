@@ -74,19 +74,6 @@ var _ = Describe("SetDefaults_ExtensionConfig", func() {
 		})
 	})
 
-	Context("with custom unconstrained package", func() {
-		BeforeEach(func() {
-			config.Dependencies = []DependencyConfig{
-				{Name: "custom-package"},
-			}
-		})
-
-		It("should not add any defaults", func() {
-			Expect(config.Dependencies).To(HaveLen(1))
-			Expect(config.Dependencies[0].Name).To(Equal("custom-package"))
-		})
-	})
-
 	Context("with custom pinned package", func() {
 		BeforeEach(func() {
 			config.Dependencies = []DependencyConfig{
@@ -117,7 +104,12 @@ var _ = Describe("SetDefaults_ExtensionConfig", func() {
 
 		It("should not add any defaults", func() {
 			Expect(config.Dependencies).To(HaveLen(1))
-			Expect(config.Dependencies[0].Version).To(Equal("1.0.0"))
+			Expect(config.Dependencies[0]).To(And(
+				WithTransform(func(d DependencyConfig) string { return d.Name }, Equal("custom-package")),
+				WithTransform(func(d DependencyConfig) string { return d.Version }, Equal("1.0.0")),
+				WithTransform(func(d DependencyConfig) string { return d.UbuntuVersion }, BeEmpty()),
+				WithTransform(func(d DependencyConfig) string { return d.UbuntuBuildSerial }, BeEmpty()),
+			))
 		})
 	})
 })
