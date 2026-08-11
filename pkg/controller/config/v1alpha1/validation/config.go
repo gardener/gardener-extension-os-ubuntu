@@ -45,11 +45,11 @@ func ValidateExtensionConfig(config *configv1alpha1.ExtensionConfig) field.Error
 	}
 
 	if config.APTConfig != nil {
-		allErrs = append(allErrs, validateAPTConfig(config.APTConfig, rootPath)...)
+		allErrs = append(allErrs, validateAPTConfig(config.APTConfig, rootPath.Child("apt"))...)
 	}
 
-	allErrs = append(allErrs, validateAptRepositories(config.AptRepositories, rootPath)...)
-	allErrs = append(allErrs, validateDependencies(config.Dependencies, rootPath)...)
+	allErrs = append(allErrs, validateAptRepositories(config.AptRepositories, rootPath.Child("aptRepositories"))...)
+	allErrs = append(allErrs, validateDependencies(config.Dependencies, rootPath.Child("dependencies"))...)
 
 	return allErrs
 }
@@ -58,7 +58,7 @@ func validateAptRepositories(config []configv1alpha1.AptRepository, fldPath *fie
 	allErrs := field.ErrorList{}
 	seenNames := sets.New[string]()
 	for i, repo := range config {
-		repoPath := fldPath.Child("aptRepositories").Index(i)
+		repoPath := fldPath.Index(i)
 		if repo.Name == "" {
 			allErrs = append(allErrs, field.Required(repoPath.Child("name"), "name is required"))
 		} else if seenNames.Has(repo.Name) {
@@ -76,7 +76,7 @@ func validateAptRepositories(config []configv1alpha1.AptRepository, fldPath *fie
 func validateDependencies(config []configv1alpha1.DependencyConfig, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 	for i, dep := range config {
-		depPath := fldPath.Child("dependencies").Index(i)
+		depPath := fldPath.Index(i)
 		if dep.Name == "" {
 			allErrs = append(allErrs, field.Required(depPath.Child("name"), "name is required"))
 		} else if !validPackageName.MatchString(dep.Name) {
@@ -105,26 +105,26 @@ func validateNTPDConfig(config *configv1alpha1.NTPDConfig, fldPath *field.Path) 
 
 func validateAPTConfig(config *configv1alpha1.APTConfig, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
-	allErrs = append(allErrs, validateAPTArchive(config.Primary, fldPath, "primary")...)
-	allErrs = append(allErrs, validateAPTArchive(config.Security, fldPath, "security")...)
+	allErrs = append(allErrs, validateAPTArchive(config.Primary, fldPath.Child("primary"))...)
+	allErrs = append(allErrs, validateAPTArchive(config.Security, fldPath.Child("security"))...)
 	return allErrs
 }
 
-func validateAPTArchive(config []configv1alpha1.APTArchive, fldPath *field.Path, archiveName string) field.ErrorList {
+func validateAPTArchive(config []configv1alpha1.APTArchive, fldPath *field.Path) field.ErrorList {
 	validArchitectureNames := sets.New(configv1alpha1.ArchDefault, configv1alpha1.AMD64, configv1alpha1.ARM64)
 	allErrs := field.ErrorList{}
 	for _, configArchive := range config {
 		for _, arch := range configArchive.Arches {
 			if !slices.Contains(validArchitectureNames.UnsortedList(), arch) {
-				allErrs = append(allErrs, field.NotSupported(fldPath.Child("apt").Child(archiveName).Child("arches"), configArchive.Arches, validArchitectureNames.UnsortedList()))
+				allErrs = append(allErrs, field.NotSupported(fldPath.Child("arches"), configArchive.Arches, validArchitectureNames.UnsortedList()))
 			}
 		}
 		if !isValidURL(configArchive.URI) {
-			allErrs = append(allErrs, field.Invalid(fldPath.Child("apt").Child(archiveName).Child("uri"), configArchive.URI, "invalid URL"))
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("uri"), configArchive.URI, "invalid URL"))
 		}
 		for _, search := range configArchive.Search {
 			if !isValidURL(search) {
-				allErrs = append(allErrs, field.Invalid(fldPath.Child("apt").Child(archiveName).Child("search"), search, "invalid URL"))
+				allErrs = append(allErrs, field.Invalid(fldPath.Child("search"), search, "invalid URL"))
 			}
 		}
 	}
