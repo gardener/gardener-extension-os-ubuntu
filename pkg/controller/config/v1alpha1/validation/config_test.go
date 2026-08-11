@@ -158,6 +158,13 @@ var _ = Describe("ExtensionConfig validation", func() {
 		Expect(errs[0].Field).To(Equal("dependencies[0].ubuntuBuildSerial"))
 	})
 
+	It("should succeed with build serial containing dots", func() {
+		config.Dependencies = []configv1alpha1.DependencyConfig{
+			{Name: "containerd", UbuntuBuildSerial: "20261201.1"},
+		}
+		Expect(ValidateExtensionConfig(config)).To(BeEmpty())
+	})
+
 	It("should fail with duplicate repository names", func() {
 		config.AptRepositories = []configv1alpha1.AptRepository{
 			{Name: "docker", URI: "https://download.docker.com/linux/ubuntu"},

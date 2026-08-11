@@ -19,7 +19,7 @@ var (
 	validPackageName    = regexp.MustCompile(`^[a-z0-9][a-z0-9.+-]+$`)
 	validPackageVersion = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9.+:~\-]*$`)
 	validUbuntuVersion  = regexp.MustCompile(`^[0-9]+\.[0-9]+$`)
-	validBuildSerial    = regexp.MustCompile(`^[0-9]+$`)
+	validBuildSerial    = regexp.MustCompile(`^[0-9.]+$`)
 )
 
 func ValidateExtensionConfig(config *configv1alpha1.ExtensionConfig) field.ErrorList {
@@ -89,7 +89,7 @@ func validateDependencies(config []configv1alpha1.DependencyConfig, fldPath *fie
 			allErrs = append(allErrs, field.Invalid(depPath.Child("ubuntuVersion"), dep.UbuntuVersion, "must be a valid Ubuntu version (e.g. \"22.04\")"))
 		}
 		if dep.UbuntuBuildSerial != "" && !validBuildSerial.MatchString(dep.UbuntuBuildSerial) {
-			allErrs = append(allErrs, field.Invalid(depPath.Child("ubuntuBuildSerial"), dep.UbuntuBuildSerial, "must be a numeric build serial"))
+			allErrs = append(allErrs, field.Invalid(depPath.Child("ubuntuBuildSerial"), dep.UbuntuBuildSerial, "must be a numeric build serial (digits and dots)"))
 		}
 	}
 	return allErrs
