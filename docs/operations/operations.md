@@ -176,7 +176,7 @@ If `dependencies` is omitted entirely (i.e. not present in the config), the exte
 containerd, runc, socat, nfs-common, logrotate, jq, policykit-1
 ```
 
-If `dependencies` is explicitly set (even to a non-empty list), the default set is **not** installed.
+If `dependencies` is explicitly set (even to an empty list), the default set is **not** installed.
 Any packages from the default set that are still needed must be listed explicitly — as shown in the full example above, where `socat`, `nfs-common`, `logrotate`, `jq`, and `policykit-1` are listed alongside the pinned `containerd.io`.
 
 Every `DependencyConfig` has the following fields:
@@ -202,7 +202,11 @@ This behavior makes it possible to pin a package to specific image builds while 
 
 #### Example: pinning `containerd.io` per Ubuntu version
 
-The following installs `containerd.io` pinned to a specific version on Ubuntu 22.04 and 26.04, and falls back to the latest available version on any other Ubuntu release:
+The following snippet installs a pinned version of `containerd.io` on Ubuntu 22.04 and 26.04, while falling back to the latest available version on any other Ubuntu release.
+
+To use version pinning, you must install the `containerd.io` package rather than Ubuntu's default `containerd` package. Unlike upstream Ubuntu repositories, which only host the most recent release, Docker's repositories maintain multiple versions in parallel.
+
+Note: Ensure you have configured the official Docker APT repository before proceeding, as demonstrated in the full example.
 
 ```yaml
 dependencies:
@@ -219,23 +223,39 @@ dependencies:
 
 #### Example: pinning to a specific image build
 
-To pin a package to a specific combination of Ubuntu version and build serial (e.g. to match a tested machine image):
+To pin a package to a specific combination of Ubuntu version and build serial:
 
 ```yaml
 dependencies:
   - name: containerd.io
-    version: "2.2.2-1~ubuntu.26.04~resolute"
+    version: "2.2.6-1~ubuntu.26.04~resolute"
     ubuntuVersion: "26.04"
     ubuntuBuildSerial: "20260713"
     hold: true
   - name: containerd.io
-    version: "2.2.6-1~ubuntu.26.04~resolute"
+    version: "2.3.0-1~ubuntu.26.04~resolute"
+    ubuntuVersion: "26.04"
+    ubuntuBuildSerial: "20260812"
+    hold: true
+  - name: containerd.io
+    version: "2.3.0-1~ubuntu.26.04~resolute"
     ubuntuVersion: "26.04"
     hold: true
 ```
 
-In this example, image builds with serial `20260713` get `containerd.io` `2.2.2`, while all other 26.04 images get `2.2.6`.
-Entries are evaluated in order, so more specific pins must appear before broader ones.
+Pinning on the buildSerial is especially useful to roll out package updates safely during Shoot maintenance windows.
+
+To leverage this, your Gardener `CloudProfile` must be configured to expose multiple Machine Image versions simultaneously. By managing different OS image builds (which have distinct build serials) under different lifecycle classifications (`preview`, `supported` or `deprecated`) you can safely stage package updates.
+
+In this example:
+
+1. Shoots running the older supported OS image (serial `20260713`) remain safely pinned to `containerd.io` in version `2.2.6`
+2. A newer OS image (serial `20260812`) added to the `CloudProfile` with the preview classification receives the minor update to `containerd.io` in version `2.3.0`
+3. Any other unpinned 26.04 image falls back to the broader `2.3.0` rule at the bottom
+
+When a Shoot is updated to the newer preview machine image during its maintenance window, the package version update rolls out alongside it without affecting existing clusters.
+
+Note: Entries are evaluated in order from top to bottom. Because of this, more specific pins (like those containing a buildSerial) must appear before broader ones.
 
 #### Example: supplementing the default packages
 
