@@ -319,14 +319,13 @@ func (a *actuator) generateInstallDependenciesScript() (string, error) {
 	for name := range byName {
 		names = append(names, name)
 	}
+	// Sort for deterministic script generation (Go map iteration is randomized)
 	sort.Strings(names)
 
 	var instructions []packageInstruction
 
 	for _, name := range names {
-		if instruction := buildPackageInstruction(name, byName[name]); instruction != nil {
-			instructions = append(instructions, *instruction)
-		}
+		instructions = append(instructions, buildPackageInstruction(name, byName[name]))
 	}
 
 	var sb strings.Builder
@@ -339,7 +338,7 @@ func (a *actuator) generateInstallDependenciesScript() (string, error) {
 }
 
 // buildPackageInstruction creates a template instruction for a single package.
-func buildPackageInstruction(name string, deps []configv1alpha1.DependencyConfig) *packageInstruction {
+func buildPackageInstruction(name string, deps []configv1alpha1.DependencyConfig) packageInstruction {
 	instruction := packageInstruction{Name: name}
 
 	for _, dep := range deps {
@@ -360,7 +359,7 @@ func buildPackageInstruction(name string, deps []configv1alpha1.DependencyConfig
 		})
 	}
 
-	return &instruction
+	return instruction
 }
 
 func buildCondition(dep configv1alpha1.DependencyConfig) string {

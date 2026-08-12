@@ -165,6 +165,33 @@ var _ = Describe("ExtensionConfig validation", func() {
 		Expect(ValidateExtensionConfig(config)).To(BeEmpty())
 	})
 
+	It("should fail with duplicate unconstrained dependencies", func() {
+		config.Dependencies = []configv1alpha1.DependencyConfig{
+			{Name: "containerd", Version: "1.0.0"},
+			{Name: "containerd", Version: "2.0.0"},
+		}
+		errs := ValidateExtensionConfig(config)
+		Expect(errs).To(HaveLen(1))
+		Expect(errs[0].Type).To(Equal(field.ErrorTypeDuplicate))
+		Expect(errs[0].Field).To(Equal("dependencies[1].name"))
+	})
+
+	It("should succeed with same dependency name but different ubuntu versions", func() {
+		config.Dependencies = []configv1alpha1.DependencyConfig{
+			{Name: "containerd", Version: "1.0.0", UbuntuVersion: "22.04"},
+			{Name: "containerd", Version: "2.0.0", UbuntuVersion: "24.04"},
+		}
+		Expect(ValidateExtensionConfig(config)).To(BeEmpty())
+	})
+
+	It("should succeed with one unconstrained and one constrained dependency", func() {
+		config.Dependencies = []configv1alpha1.DependencyConfig{
+			{Name: "containerd", Version: "1.0.0"},
+			{Name: "containerd", Version: "2.0.0", UbuntuVersion: "24.04"},
+		}
+		Expect(ValidateExtensionConfig(config)).To(BeEmpty())
+	})
+
 	It("should fail with duplicate repository names", func() {
 		config.AptRepositories = []configv1alpha1.AptRepository{
 			{Name: "docker", URI: "https://download.docker.com/linux/ubuntu"},

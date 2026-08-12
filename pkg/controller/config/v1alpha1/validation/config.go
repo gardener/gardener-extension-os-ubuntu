@@ -75,6 +75,8 @@ func validateAptRepositories(config []configv1alpha1.AptRepository, fldPath *fie
 
 func validateDependencies(config []configv1alpha1.DependencyConfig, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
+	unconstrainedDeps := sets.New[string]()
+
 	for i, dep := range config {
 		depPath := fldPath.Index(i)
 		if dep.Name == "" {
@@ -90,6 +92,14 @@ func validateDependencies(config []configv1alpha1.DependencyConfig, fldPath *fie
 		}
 		if dep.UbuntuBuildSerial != "" && !validBuildSerial.MatchString(dep.UbuntuBuildSerial) {
 			allErrs = append(allErrs, field.Invalid(depPath.Child("ubuntuBuildSerial"), dep.UbuntuBuildSerial, "must be a numeric build serial (digits and dots)"))
+		}
+
+		if dep.Name != "" && dep.UbuntuVersion == "" && dep.UbuntuBuildSerial == "" {
+			if unconstrainedDeps.Has(dep.Name) {
+				allErrs = append(allErrs, field.Duplicate(depPath.Child("name"), dep.Name))
+			} else {
+				unconstrainedDeps.Insert(dep.Name)
+			}
 		}
 	}
 	return allErrs
