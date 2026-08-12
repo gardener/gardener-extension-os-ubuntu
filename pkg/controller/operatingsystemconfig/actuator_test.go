@@ -206,7 +206,27 @@ var _ = Describe("Actuator", func() {
 		})
 
 		Describe("#Reconcile with apt repository and GPG key", func() {
-			It("should include signed-by option when GPG key is provided", func() {
+			It("should include signed-by option when GPG key URL is provided", func() {
+				extensionConfig := Config{ExtensionConfig: &v1alpha1.ExtensionConfig{
+					AptRepositories: []v1alpha1.AptRepository{
+						{
+							Name:   "docker",
+							URI:    "https://download.docker.com/linux/ubuntu",
+							KeyURL: "https://download.docker.com/linux/ubuntu/gpg",
+						},
+					},
+					Dependencies: []v1alpha1.DependencyConfig{
+						{Name: "containerd.io"},
+					},
+				}}
+				actuator = NewActuator(mgr, extensionConfig)
+				userData, _, _, _, err := actuator.Reconcile(ctx, log, osc)
+				Expect(err).NotTo(HaveOccurred())
+
+				expectUserDataToMatch(userData, fixtures.UserDataGpgKey)
+			})
+
+			It("should include signed-by option when inline GPG key is provided", func() {
 				extensionConfig := Config{ExtensionConfig: &v1alpha1.ExtensionConfig{
 					AptRepositories: []v1alpha1.AptRepository{
 						{
@@ -226,7 +246,7 @@ lO49r1nayzQb8T14bZf2DdpOjXn8b5XrZQ9JZ5hZ1XyZ5XyZ5XyZ5XyZ5XyZ5XyZ
 				userData, _, _, _, err := actuator.Reconcile(ctx, log, osc)
 				Expect(err).NotTo(HaveOccurred())
 
-				expectUserDataToMatch(userData, fixtures.UserDataGpgKey)
+				expectUserDataToMatch(userData, fixtures.UserDataGpgKeyInline)
 			})
 		})
 

@@ -78,11 +78,11 @@
       preserve_sources_list: false
       sources:
         docker:
-          source: deb [signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu
-            $RELEASE stable
-    write_files:
-    - owner: root:root
-      path: /etc/apt/keyrings/docker.gpg
-      permissions: "0644"
-      source: https://download.docker.com/linux/ubuntu/gpg
+          key: |-
+            -----BEGIN PGP PUBLIC KEY BLOCK-----
+            mQINBFit2ioBEADhWpZ8/wvZ6hUTiXOwQHXMAlaFHcPH9hAtr4F1y2+OYdbtMuth
+            lO49r1nayzQb8T14bZf2DdpOjXn8b5XrZQ9JZ5hZ1XyZ5XyZ5XyZ5XyZ5XyZ5XyZ
+            -----END PGP PUBLIC KEY BLOCK-----
+          source: deb [signed-by=$KEY_FILE] https://download.docker.com/linux/ubuntu $RELEASE
+            stable
   type: text/cloud-config

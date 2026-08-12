@@ -54,6 +54,11 @@ type AptRepository struct {
 	// the repository is configured without GPG signature verification.
 	// +optional
 	Key string `json:"key,omitempty"`
+	// KeyURL is the URL to download the GPG key from. The key is downloaded
+	// via cloud-init write_files to /etc/apt/keyrings/<name>.gpg and
+	// referenced with signed-by. Mutually exclusive with Key.
+	// +optional
+	KeyURL string `json:"keyUrl,omitempty"`
 	// Suite is the apt suite to use. Defaults to "$RELEASE" which cloud-init
 	// substitutes with the release codename.
 	// +optional

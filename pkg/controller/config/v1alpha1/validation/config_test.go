@@ -202,4 +202,58 @@ var _ = Describe("ExtensionConfig validation", func() {
 		Expect(errs[0].Type).To(Equal(field.ErrorTypeDuplicate))
 		Expect(errs[0].Field).To(Equal("aptRepositories[1].name"))
 	})
+
+	It("should succeed with apt repository using key", func() {
+		config.AptRepositories = []configv1alpha1.AptRepository{
+			{Name: "docker", URI: "https://download.docker.com/linux/ubuntu", Key: "-----BEGIN PGP PUBLIC KEY BLOCK-----"},
+		}
+		Expect(ValidateExtensionConfig(config)).To(BeEmpty())
+	})
+
+	It("should succeed with apt repository using key URL", func() {
+		config.AptRepositories = []configv1alpha1.AptRepository{
+			{Name: "docker", URI: "https://download.docker.com/linux/ubuntu", KeyURL: "https://download.docker.com/linux/ubuntu/gpg"},
+		}
+		Expect(ValidateExtensionConfig(config)).To(BeEmpty())
+	})
+
+	It("should fail when both Key and KeyURL are set", func() {
+		config.AptRepositories = []configv1alpha1.AptRepository{
+			{Name: "docker", URI: "https://download.docker.com/linux/ubuntu", Key: "-----BEGIN PGP PUBLIC KEY BLOCK-----", KeyURL: "https://example.com/gpg"},
+		}
+		errs := ValidateExtensionConfig(config)
+		Expect(errs).To(HaveLen(1))
+		Expect(errs[0].Type).To(Equal(field.ErrorTypeForbidden))
+		Expect(errs[0].Field).To(Equal("aptRepositories[0].keyUrl"))
+	})
+
+	It("should fail with invalid KeyURL", func() {
+		config.AptRepositories = []configv1alpha1.AptRepository{
+			{Name: "docker", URI: "https://download.docker.com/linux/ubuntu", KeyURL: "not-a-valid-url"},
+		}
+		errs := ValidateExtensionConfig(config)
+		Expect(errs).To(HaveLen(1))
+		Expect(errs[0].Type).To(Equal(field.ErrorTypeInvalid))
+		Expect(errs[0].Field).To(Equal("aptRepositories[0].keyUrl"))
+	})
+
+	It("should fail with path traversal in apt repository name", func() {
+		config.AptRepositories = []configv1alpha1.AptRepository{
+			{Name: "../../etc/cron.d/evil", URI: "https://download.docker.com/linux/ubuntu"},
+		}
+		errs := ValidateExtensionConfig(config)
+		Expect(errs).To(HaveLen(1))
+		Expect(errs[0].Type).To(Equal(field.ErrorTypeInvalid))
+		Expect(errs[0].Field).To(Equal("aptRepositories[0].name"))
+	})
+
+	It("should fail with invalid characters in apt repository name", func() {
+		config.AptRepositories = []configv1alpha1.AptRepository{
+			{Name: "my repo", URI: "https://download.docker.com/linux/ubuntu"},
+		}
+		errs := ValidateExtensionConfig(config)
+		Expect(errs).To(HaveLen(1))
+		Expect(errs[0].Type).To(Equal(field.ErrorTypeInvalid))
+		Expect(errs[0].Field).To(Equal("aptRepositories[0].name"))
+	})
 })

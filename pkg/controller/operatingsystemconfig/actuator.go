@@ -192,6 +192,7 @@ func (a *actuator) createAPTCloudConfig() (internal.FilePart, error) {
 	aptCloudConfig := internal.FilePart{
 		Type: "text/cloud-config",
 	}
+	var writeFiles []internal.WriteFile
 	if a.extensionConfig.APTConfig != nil {
 		aptConfig.PreserveSourcesList = a.extensionConfig.APTConfig.PreserveSourcesList
 		aptConfig.Primary = make([]internal.APTArchive, 0, len(a.extensionConfig.APTConfig.Primary))
@@ -217,7 +218,6 @@ func (a *actuator) createAPTCloudConfig() (internal.FilePart, error) {
 	if len(a.extensionConfig.AptRepositories) > 0 {
 		aptConfig.Sources = make(map[string]internal.APTSource, len(a.extensionConfig.AptRepositories))
 		for _, repo := range a.extensionConfig.AptRepositories {
-			key := repo.Key
 			suite := repo.Suite
 			if suite == "" {
 				suite = "$RELEASE"
@@ -228,17 +228,33 @@ func (a *actuator) createAPTCloudConfig() (internal.FilePart, error) {
 			}
 
 			source := fmt.Sprintf("deb %s %s %s", repo.URI, suite, strings.Join(components, " "))
-			if key != "" {
-				source = fmt.Sprintf("deb [signed-by=$KEY_FILE] %s %s %s", repo.URI, suite, strings.Join(components, " "))
+			var signedByPath string
+			switch {
+			case repo.KeyURL != "":
+				signedByPath = fmt.Sprintf("/etc/apt/keyrings/%s.gpg", repo.Name)
+				writeFiles = append(writeFiles, internal.WriteFile{
+					Path:        signedByPath,
+					Source:      repo.KeyURL,
+					Permissions: "0644",
+					Owner:       "root:root",
+				})
+			case repo.Key != "":
+				signedByPath = "$KEY_FILE"
 			}
-			aptConfig.Sources[repo.Name] = internal.APTSource{
-				Source: source,
-				Key:    key,
+
+			if signedByPath != "" {
+				source = fmt.Sprintf("deb [signed-by=%s] %s %s %s", signedByPath, repo.URI, suite, strings.Join(components, " "))
 			}
+
+			aptSource := internal.APTSource{Source: source}
+			if repo.Key != "" {
+				aptSource.Key = repo.Key
+			}
+			aptConfig.Sources[repo.Name] = aptSource
 		}
 	}
 
-	cloudInitApt := internal.APTCloudInit{APT: aptConfig}
+	cloudInitApt := internal.APTCloudInit{APT: aptConfig, WriteFiles: writeFiles}
 	cloudInitAptYaml, err := yaml.Marshal(cloudInitApt)
 	if err != nil {
 		return aptCloudConfig, fmt.Errorf("failed to marshal cloud-init apt config to yaml: %w", err)

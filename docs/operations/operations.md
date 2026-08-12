@@ -139,15 +139,16 @@ Repository names must be unique across the list.
 
 Every `AptRepository` has the following fields:
 
-| Field        | Type       | Required | Default      | Description                                                                                                                                                                                                                                                                                                 |
-| ------------ | ---------- | -------- | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `name`       | `string`   | yes      |              | Unique identifier for the apt source. Used as the key in cloud-init's `apt.sources` map. Must be unique across all entries.                                                                                                                                                                                 |
-| `uri`        | `string`   | yes      |              | Base URI of the apt repository (e.g. `https://download.docker.com/linux/ubuntu`). Must be a valid URL with scheme and host.                                                                                                                                                                                 |
-| `key`        | `string`   | no       | `""`         | ASCII-armored GPG public key used to sign the repository's `Release` file. If empty, the repository is configured **without** GPG signature verification, which is strongly discouraged for production use. When provided, cloud-init writes the key to a file and references it via `signed-by=$KEY_FILE`. |
-| `suite`      | `string`   | no       | `"$RELEASE"` | The apt suite/distribution. The literal `$RELEASE` is substituted by cloud-init with the release codename of the running Ubuntu version (e.g. `jammy`, `noble`).                                                                                                                                            |
-| `components` | `[]string` | no       | `["stable"]` | List of apt components to enable for the repository.                                                                                                                                                                                                                                                        |
+| Field        | Type       | Required | Default      | Description                                                                                                                                                                                                                                                                                                                                                               |
+| ------------ | ---------- | -------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `name`       | `string`   | yes      |              | Unique identifier for the apt source. Used as the key in cloud-init's `apt.sources` map. Must be unique across all entries. Must match `^[a-zA-Z0-9][a-zA-Z0-9._-]*$` (alphanumeric, dots, underscores, hyphens).                                                                                                                                                         |
+| `uri`        | `string`   | yes      |              | Base URI of the apt repository (e.g. `https://download.docker.com/linux/ubuntu`). Must be a valid URL with scheme and host.                                                                                                                                                                                                                                               |
+| `key`        | `string`   | no       | `""`         | ASCII-armored GPG public key used to sign the repository's `Release` file. Mutually exclusive with `keyUrl`. If both `key` and `keyUrl` are empty, the repository is configured **without** GPG signature verification, which is strongly discouraged for production use. When provided, cloud-init writes the key to a file and references it via `signed-by=$KEY_FILE`. |
+| `keyUrl`     | `string`   | no       | `""`         | URL to download the GPG key from. Mutually exclusive with `key`. When provided, cloud-init downloads the key via `write_files` to `/etc/apt/keyrings/<name>.gpg` and references it via `signed-by=/etc/apt/keyrings/<name>.gpg`. Must be a valid URL with scheme and host.                                                                                                |
+| `suite`      | `string`   | no       | `"$RELEASE"` | The apt suite/distribution. The literal `$RELEASE` is substituted by cloud-init with the release codename of the running Ubuntu version (e.g. `jammy`, `noble`).                                                                                                                                                                                                          |
+| `components` | `[]string` | no       | `["stable"]` | List of apt components to enable for the repository.                                                                                                                                                                                                                                                                                                                      |
 
-Example:
+Example with inline GPG key:
 
 ```yaml
 aptRepositories:
@@ -157,6 +158,15 @@ aptRepositories:
       -----BEGIN PGP PUBLIC KEY BLOCK-----
       ...
       -----END PGP PUBLIC KEY BLOCK-----
+```
+
+Example with GPG key URL (preferred for frequently rotated keys):
+
+```yaml
+aptRepositories:
+  - name: docker
+    uri: https://download.docker.com/linux/ubuntu
+    keyUrl: https://download.docker.com/linux/ubuntu/gpg
 ```
 
 When `aptRepositories` is empty (the default), no additional apt sources are added and only the default Ubuntu archives (or the custom mirror configured via `apt`) are used.

@@ -24,6 +24,9 @@ var UserDataCustomMirror string
 //go:embed UserDataGpgKey.yaml
 var UserDataGpgKey string
 
+//go:embed UserDataGpgKeyInline.yaml
+var UserDataGpgKeyInline string
+
 //go:embed UserDataPinnedDeps.yaml
 var UserDataPinnedDeps string
 

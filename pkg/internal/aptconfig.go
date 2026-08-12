@@ -29,7 +29,15 @@ type APTSource struct {
 }
 
 type APTCloudInit struct {
-	APT APTConfig `json:"apt,omitempty"`
+	APT        APTConfig   `json:"apt,omitempty"`
+	WriteFiles []WriteFile `json:"write_files,omitempty"`
+}
+
+type WriteFile struct {
+	Path        string `json:"path"`
+	Source      string `json:"source,omitempty"`
+	Permissions string `json:"permissions"`
+	Owner       string `json:"owner"`
 }
 
 type FilePart struct {

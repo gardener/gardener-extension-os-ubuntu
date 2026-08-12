@@ -16,10 +16,11 @@ import (
 )
 
 var (
-	validPackageName    = regexp.MustCompile(`^[a-z0-9][a-z0-9.+-]+$`)
-	validPackageVersion = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9.+:~\-]*$`)
-	validUbuntuVersion  = regexp.MustCompile(`^[0-9]+\.[0-9]+$`)
-	validBuildSerial    = regexp.MustCompile(`^[0-9.]+$`)
+	validPackageName       = regexp.MustCompile(`^[a-z0-9][a-z0-9.+-]+$`)
+	validPackageVersion    = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9.+:~\-]*$`)
+	validUbuntuVersion     = regexp.MustCompile(`^[0-9]+\.[0-9]+$`)
+	validBuildSerial       = regexp.MustCompile(`^[0-9.]+$`)
+	validAptRepositoryName = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9._-]*$`)
 )
 
 func ValidateExtensionConfig(config *configv1alpha1.ExtensionConfig) field.ErrorList {
@@ -61,6 +62,8 @@ func validateAptRepositories(config []configv1alpha1.AptRepository, fldPath *fie
 		repoPath := fldPath.Index(i)
 		if repo.Name == "" {
 			allErrs = append(allErrs, field.Required(repoPath.Child("name"), "name is required"))
+		} else if !validAptRepositoryName.MatchString(repo.Name) {
+			allErrs = append(allErrs, field.Invalid(repoPath.Child("name"), repo.Name, "must be a valid name (alphanumeric, dots, underscores, hyphens)"))
 		} else if seenNames.Has(repo.Name) {
 			allErrs = append(allErrs, field.Duplicate(repoPath.Child("name"), repo.Name))
 		} else {
@@ -68,6 +71,12 @@ func validateAptRepositories(config []configv1alpha1.AptRepository, fldPath *fie
 		}
 		if !isValidURL(repo.URI) {
 			allErrs = append(allErrs, field.Invalid(repoPath.Child("uri"), repo.URI, "invalid URL"))
+		}
+		if repo.Key != "" && repo.KeyURL != "" {
+			allErrs = append(allErrs, field.Forbidden(repoPath.Child("keyUrl"), "key and keyUrl are mutually exclusive"))
+		}
+		if repo.KeyURL != "" && !isValidURL(repo.KeyURL) {
+			allErrs = append(allErrs, field.Invalid(repoPath.Child("keyUrl"), repo.KeyURL, "invalid URL"))
 		}
 	}
 	return allErrs
