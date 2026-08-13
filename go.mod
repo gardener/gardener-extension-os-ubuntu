@@ -4,8 +4,8 @@ go 1.26.4
 
 require (
 	github.com/Masterminds/sprig/v3 v3.3.0
-	github.com/gardener/gardener v1.145.0
-	github.com/gardener/gardener/pkg/apis v1.145.0
+	github.com/gardener/gardener v1.149.0
+	github.com/gardener/gardener/pkg/apis v1.149.0
 	github.com/go-logr/logr v1.4.4
 	github.com/google/go-cmp v0.7.0
 	github.com/onsi/ginkgo/v2 v2.32.1
