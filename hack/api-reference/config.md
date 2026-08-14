@@ -197,6 +197,18 @@ string
 </tr>
 <tr>
 <td>
+<code>keyUrl</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>KeyURL is the URL to download the GPG key from. The key is downloaded<br />via cloud-init write_files to /etc/apt/keyrings/<name>.gpg and<br />referenced with signed-by. Mutually exclusive with Key.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>suite</code></br>
 <em>
 string
