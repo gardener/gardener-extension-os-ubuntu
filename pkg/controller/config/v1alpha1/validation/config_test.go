@@ -251,6 +251,13 @@ var _ = Describe("ExtensionConfig validation", func() {
 		Expect(ValidateExtensionConfig(config)).To(BeEmpty())
 	})
 
+	It("should not fail with uppercase keyFormat", func() {
+		config.AptRepositories = []configv1alpha1.AptRepository{
+			{Name: "docker", URI: "https://download.docker.com/linux/ubuntu", KeyURL: "https://download.docker.com/linux/ubuntu/gpg", KeyFormat: "ASC"},
+		}
+		Expect(ValidateExtensionConfig(config)).To(BeEmpty())
+	})
+
 	It("should fail with invalid keyFormat", func() {
 		config.AptRepositories = []configv1alpha1.AptRepository{
 			{Name: "docker", URI: "https://download.docker.com/linux/ubuntu", KeyURL: "https://download.docker.com/linux/ubuntu/gpg", KeyFormat: "binary"},
@@ -269,6 +276,18 @@ var _ = Describe("ExtensionConfig validation", func() {
 		Expect(errs).To(HaveLen(1))
 		Expect(errs[0].Type).To(Equal(field.ErrorTypeForbidden))
 		Expect(errs[0].Field).To(Equal("aptRepositories[0].keyFormat"))
+	})
+
+	It("should fail with both forbidden and not-supported errors when keyFormat is invalid and keyUrl is unset", func() {
+		config.AptRepositories = []configv1alpha1.AptRepository{
+			{Name: "docker", URI: "https://download.docker.com/linux/ubuntu", KeyFormat: "binary"},
+		}
+		errs := ValidateExtensionConfig(config)
+		Expect(errs).To(HaveLen(2))
+		Expect(errs[0].Type).To(Equal(field.ErrorTypeForbidden))
+		Expect(errs[0].Field).To(Equal("aptRepositories[0].keyFormat"))
+		Expect(errs[1].Type).To(Equal(field.ErrorTypeNotSupported))
+		Expect(errs[1].Field).To(Equal("aptRepositories[0].keyFormat"))
 	})
 
 	It("should fail with path traversal in apt repository name", func() {

@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"regexp"
 	"slices"
+	"strings"
 
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -82,7 +83,7 @@ func validateAptRepositories(config []configv1alpha1.AptRepository, fldPath *fie
 			if repo.KeyURL == "" {
 				allErrs = append(allErrs, field.Forbidden(repoPath.Child("keyFormat"), "keyFormat is only valid when keyUrl is set"))
 			}
-			if repo.KeyFormat != configv1alpha1.KeyFormatASC && repo.KeyFormat != configv1alpha1.KeyFormatGPG {
+			if strings.ToLower(string(repo.KeyFormat)) != string(configv1alpha1.KeyFormatASC) && strings.ToLower(string(repo.KeyFormat)) != string(configv1alpha1.KeyFormatGPG) {
 				allErrs = append(allErrs, field.NotSupported(repoPath.Child("keyFormat"), repo.KeyFormat, []string{string(configv1alpha1.KeyFormatASC), string(configv1alpha1.KeyFormatGPG)}))
 			}
 		}

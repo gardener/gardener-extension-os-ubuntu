@@ -231,8 +231,13 @@ func (a *actuator) createAPTCloudConfig() (internal.FilePart, error) {
 			var signedByPath string
 			switch {
 			case repo.KeyURL != "":
-				keyFormat := repo.KeyFormat
-				if keyFormat == "" {
+				var keyFormat configv1alpha1.KeyFormat
+				switch strings.ToLower(string(repo.KeyFormat)) {
+				case string(configv1alpha1.KeyFormatASC):
+					keyFormat = configv1alpha1.KeyFormatASC
+				case string(configv1alpha1.KeyFormatGPG):
+					keyFormat = configv1alpha1.KeyFormatGPG
+				default:
 					keyFormat = configv1alpha1.KeyFormatASC
 				}
 				signedByPath = fmt.Sprintf("/etc/apt/keyrings/%s.%s", repo.Name, keyFormat)

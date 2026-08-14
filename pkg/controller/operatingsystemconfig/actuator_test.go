@@ -247,6 +247,27 @@ var _ = Describe("Actuator", func() {
 				expectUserDataToMatch(userData, fixtures.UserDataGpgKeyBinary)
 			})
 
+			It("should include signed-by option with ascii-armored key format when GPG key URL is provided", func() {
+				extensionConfig := Config{ExtensionConfig: &v1alpha1.ExtensionConfig{
+					AptRepositories: []v1alpha1.AptRepository{
+						{
+							Name:      "docker",
+							URI:       "https://download.docker.com/linux/ubuntu",
+							KeyURL:    "https://download.docker.com/linux/ubuntu/gpg",
+							KeyFormat: v1alpha1.KeyFormatASC,
+						},
+					},
+					Dependencies: []v1alpha1.DependencyConfig{
+						{Name: "containerd.io"},
+					},
+				}}
+				actuator = NewActuator(mgr, extensionConfig)
+				userData, _, _, _, err := actuator.Reconcile(ctx, log, osc)
+				Expect(err).NotTo(HaveOccurred())
+
+				expectUserDataToMatch(userData, fixtures.UserDataGpgKey)
+			})
+
 			It("should include signed-by option when inline GPG key is provided", func() {
 				extensionConfig := Config{ExtensionConfig: &v1alpha1.ExtensionConfig{
 					AptRepositories: []v1alpha1.AptRepository{
