@@ -78,6 +78,14 @@ func validateAptRepositories(config []configv1alpha1.AptRepository, fldPath *fie
 		if repo.KeyURL != "" && !isValidURL(repo.KeyURL) {
 			allErrs = append(allErrs, field.Invalid(repoPath.Child("keyUrl"), repo.KeyURL, "invalid URL"))
 		}
+		if repo.KeyFormat != "" {
+			if repo.KeyURL == "" {
+				allErrs = append(allErrs, field.Forbidden(repoPath.Child("keyFormat"), "keyFormat is only valid when keyUrl is set"))
+			}
+			if repo.KeyFormat != configv1alpha1.KeyFormatASC && repo.KeyFormat != configv1alpha1.KeyFormatGPG {
+				allErrs = append(allErrs, field.NotSupported(repoPath.Child("keyFormat"), repo.KeyFormat, []string{string(configv1alpha1.KeyFormatASC), string(configv1alpha1.KeyFormatGPG)}))
+			}
+		}
 	}
 	return allErrs
 }

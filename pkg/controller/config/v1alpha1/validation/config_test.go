@@ -237,6 +237,40 @@ var _ = Describe("ExtensionConfig validation", func() {
 		Expect(errs[0].Field).To(Equal("aptRepositories[0].keyUrl"))
 	})
 
+	It("should succeed with keyUrl and keyFormat asc", func() {
+		config.AptRepositories = []configv1alpha1.AptRepository{
+			{Name: "docker", URI: "https://download.docker.com/linux/ubuntu", KeyURL: "https://download.docker.com/linux/ubuntu/gpg", KeyFormat: configv1alpha1.KeyFormatASC},
+		}
+		Expect(ValidateExtensionConfig(config)).To(BeEmpty())
+	})
+
+	It("should succeed with keyUrl and keyFormat gpg", func() {
+		config.AptRepositories = []configv1alpha1.AptRepository{
+			{Name: "docker", URI: "https://download.docker.com/linux/ubuntu", KeyURL: "https://download.docker.com/linux/ubuntu/gpg", KeyFormat: configv1alpha1.KeyFormatGPG},
+		}
+		Expect(ValidateExtensionConfig(config)).To(BeEmpty())
+	})
+
+	It("should fail with invalid keyFormat", func() {
+		config.AptRepositories = []configv1alpha1.AptRepository{
+			{Name: "docker", URI: "https://download.docker.com/linux/ubuntu", KeyURL: "https://download.docker.com/linux/ubuntu/gpg", KeyFormat: "binary"},
+		}
+		errs := ValidateExtensionConfig(config)
+		Expect(errs).To(HaveLen(1))
+		Expect(errs[0].Type).To(Equal(field.ErrorTypeNotSupported))
+		Expect(errs[0].Field).To(Equal("aptRepositories[0].keyFormat"))
+	})
+
+	It("should fail when keyFormat is set without keyUrl", func() {
+		config.AptRepositories = []configv1alpha1.AptRepository{
+			{Name: "docker", URI: "https://download.docker.com/linux/ubuntu", KeyFormat: configv1alpha1.KeyFormatASC},
+		}
+		errs := ValidateExtensionConfig(config)
+		Expect(errs).To(HaveLen(1))
+		Expect(errs[0].Type).To(Equal(field.ErrorTypeForbidden))
+		Expect(errs[0].Field).To(Equal("aptRepositories[0].keyFormat"))
+	})
+
 	It("should fail with path traversal in apt repository name", func() {
 		config.AptRepositories = []configv1alpha1.AptRepository{
 			{Name: "../../etc/cron.d/evil", URI: "https://download.docker.com/linux/ubuntu"},

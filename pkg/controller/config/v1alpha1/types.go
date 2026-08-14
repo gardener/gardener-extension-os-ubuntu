@@ -42,6 +42,19 @@ type ExtensionConfig struct {
 	APTConfig *APTConfig `json:"apt,omitempty"`
 }
 
+// KeyFormat specifies the format of a GPG key. It determines the file
+// extension of the key file written by cloud-init, which must match the key's
+// content.
+type KeyFormat string
+
+const (
+	// KeyFormatASC denotes an ASCII-armored GPG key (file extension .asc). apt
+	// dearmors .asc keyring files before use.
+	KeyFormatASC KeyFormat = "asc"
+	// KeyFormatGPG denotes a binary GPG keyring (file extension .gpg).
+	KeyFormatGPG KeyFormat = "gpg"
+)
+
 // AptRepository describes an additional apt repository to configure via
 // cloud-init.
 type AptRepository struct {
@@ -55,10 +68,16 @@ type AptRepository struct {
 	// +optional
 	Key string `json:"key,omitempty"`
 	// KeyURL is the URL to download the GPG key from. The key is downloaded
-	// via cloud-init write_files to /etc/apt/keyrings/<name>.gpg and
+	// via cloud-init write_files to /etc/apt/keyrings/<name>.<keyFormat> and
 	// referenced with signed-by. Mutually exclusive with Key.
 	// +optional
 	KeyURL string `json:"keyUrl,omitempty"`
+	// KeyFormat specifies the format of the GPG key served by KeyURL. It
+	// determines the file extension of the key written by cloud-init, which
+	// must match the key's content: "asc" for ASCII-armored keys or "gpg" for
+	// binary keyrings. Defaults to "asc".
+	// +optional
+	KeyFormat KeyFormat `json:"keyFormat,omitempty"`
 	// Suite is the apt suite to use. Defaults to "$RELEASE" which cloud-init
 	// substitutes with the release codename.
 	// +optional

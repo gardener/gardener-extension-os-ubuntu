@@ -204,7 +204,19 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>KeyURL is the URL to download the GPG key from. The key is downloaded<br />via cloud-init write_files to /etc/apt/keyrings/<name>.gpg and<br />referenced with signed-by. Mutually exclusive with Key.</p>
+<p>KeyURL is the URL to download the GPG key from. The key is downloaded<br />via cloud-init write_files to /etc/apt/keyrings/<name>.<keyFormat> and<br />referenced with signed-by. Mutually exclusive with Key.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>keyFormat</code></br>
+<em>
+<a href="#keyformat">KeyFormat</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>KeyFormat specifies the format of the GPG key served by KeyURL. It<br />determines the file extension of the key written by cloud-init, which<br />must match the key's content: "asc" for ASCII-armored keys or "gpg" for<br />binary keyrings. Defaults to "asc".</p>
 </td>
 </tr>
 <tr>
@@ -429,6 +441,22 @@ boolean
 
 </tbody>
 </table>
+
+
+<h3 id="keyformat">KeyFormat
+</h3>
+<p><em>Underlying type: string</em></p>
+
+
+<p>
+(<em>Appears on:</em><a href="#aptrepository">AptRepository</a>)
+</p>
+
+<p>
+KeyFormat specifies the format of a GPG key. It determines the file
+extension of the key file written by cloud-init, which must match the key's
+content.
+</p>
 
 
 <h3 id="ntpconfig">NTPConfig

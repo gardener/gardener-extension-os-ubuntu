@@ -78,11 +78,11 @@
       preserve_sources_list: false
       sources:
         docker:
-          source: deb [signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu
+          source: deb [signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu
             $RELEASE stable
     write_files:
     - owner: root:root
-      path: /etc/apt/keyrings/docker.asc
+      path: /etc/apt/keyrings/docker.gpg
       permissions: "0644"
       source:
         uri: https://download.docker.com/linux/ubuntu/gpg

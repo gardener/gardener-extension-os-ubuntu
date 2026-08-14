@@ -34,10 +34,14 @@ type APTCloudInit struct {
 }
 
 type WriteFile struct {
-	Path        string `json:"path"`
-	Source      string `json:"source,omitempty"`
-	Permissions string `json:"permissions"`
-	Owner       string `json:"owner"`
+	Path        string           `json:"path"`
+	Source      *WriteFileSource `json:"source,omitempty"`
+	Permissions string           `json:"permissions"`
+	Owner       string           `json:"owner"`
+}
+
+type WriteFileSource struct {
+	URI string `json:"uri"`
 }
 
 type FilePart struct {

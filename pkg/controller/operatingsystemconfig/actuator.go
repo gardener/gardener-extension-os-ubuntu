@@ -231,10 +231,14 @@ func (a *actuator) createAPTCloudConfig() (internal.FilePart, error) {
 			var signedByPath string
 			switch {
 			case repo.KeyURL != "":
-				signedByPath = fmt.Sprintf("/etc/apt/keyrings/%s.gpg", repo.Name)
+				keyFormat := repo.KeyFormat
+				if keyFormat == "" {
+					keyFormat = configv1alpha1.KeyFormatASC
+				}
+				signedByPath = fmt.Sprintf("/etc/apt/keyrings/%s.%s", repo.Name, keyFormat)
 				writeFiles = append(writeFiles, internal.WriteFile{
 					Path:        signedByPath,
-					Source:      repo.KeyURL,
+					Source:      &internal.WriteFileSource{URI: repo.KeyURL},
 					Permissions: "0644",
 					Owner:       "root:root",
 				})
