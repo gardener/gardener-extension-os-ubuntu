@@ -8,11 +8,13 @@ import (
 	"context"
 	_ "embed"
 	"path/filepath"
+	"strings"
 
 	"github.com/gardener/gardener/extensions/pkg/controller/operatingsystemconfig"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/gardener/gardener/pkg/utils/test"
 	"github.com/go-logr/logr"
+	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gstruct"
@@ -23,10 +25,20 @@ import (
 
 	"github.com/gardener/gardener-extension-os-ubuntu/pkg/controller/config/v1alpha1"
 	. "github.com/gardener/gardener-extension-os-ubuntu/pkg/controller/operatingsystemconfig"
+	"github.com/gardener/gardener-extension-os-ubuntu/pkg/controller/operatingsystemconfig/fixtures"
 )
 
 //go:embed scripts/installNTP.sh
 var ntpInstallScript string
+
+func expectUserDataToMatch(actual []byte, expected string) {
+	GinkgoHelper()
+	actualLines := strings.Split(string(actual), "\n")
+	expectedLines := strings.Split(expected, "\n")
+	if diff := cmp.Diff(expectedLines, actualLines); diff != "" {
+		Fail("UserData mismatch (-want +got):\n" + diff)
+	}
+}
 
 var _ = Describe("Actuator", func() {
 	var (
@@ -47,6 +59,15 @@ var _ = Describe("Actuator", func() {
 			NTP: &v1alpha1.NTPConfig{
 				Daemon: v1alpha1.SystemdTimesyncd,
 			},
+			Dependencies: []v1alpha1.DependencyConfig{
+				{Name: "containerd"},
+				{Name: "jq"},
+				{Name: "logrotate"},
+				{Name: "nfs-common"},
+				{Name: "policykit-1"},
+				{Name: "runc"},
+				{Name: "socat"},
+			},
 		}}
 		actuator = NewActuator(mgr, extensionConfig)
 
@@ -60,63 +81,12 @@ var _ = Describe("Actuator", func() {
 	})
 
 	When("purpose is 'provision'", func() {
-		expectedUserData := `#cloud-config-archive
-- content: |
-    #!/bin/bash
-    if [ -f "/var/lib/osc/provision-osc-applied" ]; then
-      echo "Provision OSC already applied, exiting..."
-      exit 0
-    fi
-
-    mkdir -p /etc/cloud/cloud.cfg.d/
-    cat <<EOF > /etc/cloud/cloud.cfg.d/custom-networking.cfg
-    network:
-      config: disabled
-    EOF
-    chmod 0644 /etc/cloud/cloud.cfg.d/custom-networking.cfg
-
-    mkdir -p "/some"
-
-    cat << EOF | base64 -d > "/some/file"
-    YmFy
-    EOF
-
-
-    cat << EOF | base64 -d > "/etc/systemd/system/some-unit"
-    Zm9v
-    EOF
-    until apt-get update -qq && apt-get install --no-upgrade -qqy containerd runc socat nfs-common logrotate jq policykit-1; do sleep 1; done
-
-    if [ ! -s /etc/containerd/config.toml ]; then
-      mkdir -p /etc/containerd/
-      containerd config default > /etc/containerd/config.toml
-      chmod 0644 /etc/containerd/config.toml
-    fi
-
-    mkdir -p /etc/systemd/system/containerd.service.d
-    cat <<EOF > /etc/systemd/system/containerd.service.d/11-exec_config.conf
-    [Service]
-    ExecStart=
-    ExecStart=/usr/bin/containerd --config=/etc/containerd/config.toml
-    EOF
-    chmod 0644 /etc/systemd/system/containerd.service.d/11-exec_config.conf
-
-    systemctl daemon-reload
-    systemctl enable containerd && systemctl restart containerd
-    systemctl enable 'some-unit' && systemctl restart --no-block 'some-unit'
-
-
-    mkdir -p /var/lib/osc
-    touch /var/lib/osc/provision-osc-applied
-  type: text/x-shellscript
-`
-
 		Describe("#Reconcile", func() {
 			It("should not return an error", func() {
 				userData, extensionUnits, extensionFiles, inplaceUpdateStatus, err := actuator.Reconcile(ctx, log, osc)
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(string(userData)).To(Equal(expectedUserData))
+				expectUserDataToMatch(userData, fixtures.UserDataBasic)
 				Expect(extensionUnits).To(BeEmpty())
 				Expect(extensionFiles).To(BeEmpty())
 				Expect(inplaceUpdateStatus).To(BeNil())
@@ -124,69 +94,24 @@ var _ = Describe("Actuator", func() {
 		})
 
 		Describe("#Reconcile with disabled unattended upgrades", func() {
-			expectedUserData := `#cloud-config-archive
-- content: |
-    #!/bin/bash
-    if [ -f "/var/lib/osc/provision-osc-applied" ]; then
-      echo "Provision OSC already applied, exiting..."
-      exit 0
-    fi
-
-    mkdir -p /etc/cloud/cloud.cfg.d/
-    cat <<EOF > /etc/cloud/cloud.cfg.d/custom-networking.cfg
-    network:
-      config: disabled
-    EOF
-    chmod 0644 /etc/cloud/cloud.cfg.d/custom-networking.cfg
-
-    mkdir -p "/some"
-
-    cat << EOF | base64 -d > "/some/file"
-    YmFy
-    EOF
-
-
-    cat << EOF | base64 -d > "/etc/systemd/system/some-unit"
-    Zm9v
-    EOF
-    until apt-get update -qq && apt-get install --no-upgrade -qqy containerd runc socat nfs-common logrotate jq policykit-1; do sleep 1; done
-
-    if [ ! -s /etc/containerd/config.toml ]; then
-      mkdir -p /etc/containerd/
-      containerd config default > /etc/containerd/config.toml
-      chmod 0644 /etc/containerd/config.toml
-    fi
-
-    mkdir -p /etc/systemd/system/containerd.service.d
-    cat <<EOF > /etc/systemd/system/containerd.service.d/11-exec_config.conf
-    [Service]
-    ExecStart=
-    ExecStart=/usr/bin/containerd --config=/etc/containerd/config.toml
-    EOF
-    chmod 0644 /etc/systemd/system/containerd.service.d/11-exec_config.conf
-
-    mkdir -p /etc/apt/apt.conf.d
-    cat <<EOF > /etc/apt/apt.conf.d/99-auto-upgrades.conf
-    APT::Periodic::Unattended-Upgrade "0";
-    EOF
-    chmod 0644 /etc/apt/apt.conf.d/99-auto-upgrades.conf
-
-    systemctl daemon-reload
-    systemctl enable containerd && systemctl restart containerd
-    systemctl enable 'some-unit' && systemctl restart --no-block 'some-unit'
-
-
-    mkdir -p /var/lib/osc
-    touch /var/lib/osc/provision-osc-applied
-  type: text/x-shellscript
-`
 			It("should not return an error", func() {
-				extensionConfig := Config{ExtensionConfig: &v1alpha1.ExtensionConfig{DisableUnattendedUpgrades: ptr.To(true)}}
+				extensionConfig := Config{ExtensionConfig: &v1alpha1.ExtensionConfig{
+					DisableUnattendedUpgrades: ptr.To(true),
+					Dependencies: []v1alpha1.DependencyConfig{
+						{Name: "containerd"},
+						{Name: "jq"},
+						{Name: "logrotate"},
+						{Name: "nfs-common"},
+						{Name: "policykit-1"},
+						{Name: "runc"},
+						{Name: "socat"},
+					},
+				}}
 				actuator = NewActuator(mgr, extensionConfig)
 				userData, extensionUnits, extensionFiles, inplaceUpdateStatus, err := actuator.Reconcile(ctx, log, osc)
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(string(userData)).To(Equal(expectedUserData))
+				expectUserDataToMatch(userData, fixtures.UserDataDisabledUnattendedUpgrades)
 				Expect(extensionUnits).To(BeEmpty())
 				Expect(extensionFiles).To(BeEmpty())
 				Expect(inplaceUpdateStatus).To(BeNil())
@@ -194,94 +119,313 @@ var _ = Describe("Actuator", func() {
 		})
 
 		Describe("#Reconcile with custom apt config", func() {
-			expectedUserData := `#cloud-config-archive
-- content: |
-    #!/bin/bash
-    if [ -f "/var/lib/osc/provision-osc-applied" ]; then
-      echo "Provision OSC already applied, exiting..."
-      exit 0
-    fi
-
-    mkdir -p /etc/cloud/cloud.cfg.d/
-    cat <<EOF > /etc/cloud/cloud.cfg.d/custom-networking.cfg
-    network:
-      config: disabled
-    EOF
-    chmod 0644 /etc/cloud/cloud.cfg.d/custom-networking.cfg
-
-    mkdir -p "/some"
-
-    cat << EOF | base64 -d > "/some/file"
-    YmFy
-    EOF
-
-
-    cat << EOF | base64 -d > "/etc/systemd/system/some-unit"
-    Zm9v
-    EOF
-    until apt-get update -qq && apt-get install --no-upgrade -qqy containerd runc socat nfs-common logrotate jq policykit-1; do sleep 1; done
-
-    if [ ! -s /etc/containerd/config.toml ]; then
-      mkdir -p /etc/containerd/
-      containerd config default > /etc/containerd/config.toml
-      chmod 0644 /etc/containerd/config.toml
-    fi
-
-    mkdir -p /etc/systemd/system/containerd.service.d
-    cat <<EOF > /etc/systemd/system/containerd.service.d/11-exec_config.conf
-    [Service]
-    ExecStart=
-    ExecStart=/usr/bin/containerd --config=/etc/containerd/config.toml
-    EOF
-    chmod 0644 /etc/systemd/system/containerd.service.d/11-exec_config.conf
-
-    systemctl daemon-reload
-    systemctl enable containerd && systemctl restart containerd
-    systemctl enable 'some-unit' && systemctl restart --no-block 'some-unit'
-
-
-    mkdir -p /var/lib/osc
-    touch /var/lib/osc/provision-osc-applied
-  type: text/x-shellscript
-- content: |
-    #cloud-config
-    apt:
-      preserve_sources_list: false
-      primary:
-      - arches:
-        - default
-        uri: http://packages.ubuntu-mirror.example.com/apt-mirror/ubuntu
-      security:
-      - arches:
-        - default
-        uri: http://packages.ubuntu-mirror.example.com/apt-mirror/ubuntu
-  type: text/cloud-config
-`
-
 			It("should not return an error", func() {
-				extensionConfig := Config{ExtensionConfig: &v1alpha1.ExtensionConfig{APTConfig: &v1alpha1.APTConfig{
-					PreserveSourcesList: false,
-					Primary: []v1alpha1.APTArchive{
-						v1alpha1.APTArchive{
-							Arches: []v1alpha1.Architecture{v1alpha1.Default},
-							URI:    "http://packages.ubuntu-mirror.example.com/apt-mirror/ubuntu",
-						},
+				extensionConfig := Config{ExtensionConfig: &v1alpha1.ExtensionConfig{
+					Dependencies: []v1alpha1.DependencyConfig{
+						{Name: "containerd"},
+						{Name: "jq"},
+						{Name: "logrotate"},
+						{Name: "nfs-common"},
+						{Name: "policykit-1"},
+						{Name: "runc"},
+						{Name: "socat"},
 					},
-					Security: []v1alpha1.APTArchive{
-						v1alpha1.APTArchive{
-							Arches: []v1alpha1.Architecture{v1alpha1.Default},
-							URI:    "http://packages.ubuntu-mirror.example.com/apt-mirror/ubuntu",
+					APTConfig: &v1alpha1.APTConfig{
+						PreserveSourcesList: false,
+						Primary: []v1alpha1.APTArchive{
+							v1alpha1.APTArchive{
+								Arches: []v1alpha1.Architecture{v1alpha1.ArchDefault},
+								URI:    "http://packages.ubuntu-mirror.example.com/apt-mirror/ubuntu",
+							},
 						},
-					},
-				}}}
+						Security: []v1alpha1.APTArchive{
+							v1alpha1.APTArchive{
+								Arches: []v1alpha1.Architecture{v1alpha1.ArchDefault},
+								URI:    "http://packages.ubuntu-mirror.example.com/apt-mirror/ubuntu",
+							},
+						},
+					}}}
 				actuator = NewActuator(mgr, extensionConfig)
 				userData, extensionUnits, extensionFiles, inplaceUpdateStatus, err := actuator.Reconcile(ctx, log, osc)
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(string(userData)).To(Equal(expectedUserData))
+				expectUserDataToMatch(userData, fixtures.UserDataCustomAptConfig)
 				Expect(extensionUnits).To(BeEmpty())
 				Expect(extensionFiles).To(BeEmpty())
 				Expect(inplaceUpdateStatus).To(BeNil())
+			})
+		})
+
+		Describe("#Reconcile with docker apt repository and default dependencies", func() {
+			It("should configure the docker apt source and install default packages", func() {
+				extensionConfig := Config{ExtensionConfig: &v1alpha1.ExtensionConfig{
+					DisableUnattendedUpgrades: ptr.To(false),
+					NTP: &v1alpha1.NTPConfig{
+						Daemon: v1alpha1.SystemdTimesyncd,
+					},
+					AptRepositories: []v1alpha1.AptRepository{
+						{Name: "docker", URI: "https://download.docker.com/linux/ubuntu"},
+					},
+					Dependencies: []v1alpha1.DependencyConfig{
+						{Name: "containerd.io"},
+						{Name: "runc"},
+						{Name: "socat"},
+						{Name: "nfs-common"},
+						{Name: "logrotate"},
+						{Name: "jq"},
+						{Name: "policykit-1"},
+					},
+				}}
+				actuator = NewActuator(mgr, extensionConfig)
+				userData, extensionUnits, extensionFiles, inplaceUpdateStatus, err := actuator.Reconcile(ctx, log, osc)
+				Expect(err).NotTo(HaveOccurred())
+
+				expectUserDataToMatch(userData, fixtures.UserDataDockerRepo)
+				Expect(extensionUnits).To(BeEmpty())
+				Expect(extensionFiles).To(BeEmpty())
+				Expect(inplaceUpdateStatus).To(BeNil())
+			})
+		})
+
+		Describe("#Reconcile with custom apt repository mirror", func() {
+			It("should use the provided mirror URI", func() {
+				extensionConfig := Config{ExtensionConfig: &v1alpha1.ExtensionConfig{
+					AptRepositories: []v1alpha1.AptRepository{
+						{Name: "docker", URI: "http://mirror.example.com/linux/ubuntu"},
+					},
+					Dependencies: []v1alpha1.DependencyConfig{
+						{Name: "containerd.io"},
+					},
+				}}
+				actuator = NewActuator(mgr, extensionConfig)
+				userData, _, _, _, err := actuator.Reconcile(ctx, log, osc)
+				Expect(err).NotTo(HaveOccurred())
+
+				expectUserDataToMatch(userData, fixtures.UserDataCustomMirror)
+			})
+		})
+
+		Describe("#Reconcile with apt repository and GPG key", func() {
+			It("should include signed-by option when GPG key URL is provided", func() {
+				extensionConfig := Config{ExtensionConfig: &v1alpha1.ExtensionConfig{
+					AptRepositories: []v1alpha1.AptRepository{
+						{
+							Name:   "docker",
+							URI:    "https://download.docker.com/linux/ubuntu",
+							KeyURL: "https://download.docker.com/linux/ubuntu/gpg",
+						},
+					},
+					Dependencies: []v1alpha1.DependencyConfig{
+						{Name: "containerd.io"},
+					},
+				}}
+				actuator = NewActuator(mgr, extensionConfig)
+				userData, _, _, _, err := actuator.Reconcile(ctx, log, osc)
+				Expect(err).NotTo(HaveOccurred())
+
+				expectUserDataToMatch(userData, fixtures.UserDataGpgKey)
+			})
+
+			It("should include signed-by option with binary key format when GPG key URL is provided", func() {
+				extensionConfig := Config{ExtensionConfig: &v1alpha1.ExtensionConfig{
+					AptRepositories: []v1alpha1.AptRepository{
+						{
+							Name:      "docker",
+							URI:       "https://download.docker.com/linux/ubuntu",
+							KeyURL:    "https://download.docker.com/linux/ubuntu/gpg",
+							KeyFormat: v1alpha1.KeyFormatGPG,
+						},
+					},
+					Dependencies: []v1alpha1.DependencyConfig{
+						{Name: "containerd.io"},
+					},
+				}}
+				actuator = NewActuator(mgr, extensionConfig)
+				userData, _, _, _, err := actuator.Reconcile(ctx, log, osc)
+				Expect(err).NotTo(HaveOccurred())
+
+				expectUserDataToMatch(userData, fixtures.UserDataGpgKeyBinary)
+			})
+
+			It("should include signed-by option with ascii-armored key format when GPG key URL is provided", func() {
+				extensionConfig := Config{ExtensionConfig: &v1alpha1.ExtensionConfig{
+					AptRepositories: []v1alpha1.AptRepository{
+						{
+							Name:      "docker",
+							URI:       "https://download.docker.com/linux/ubuntu",
+							KeyURL:    "https://download.docker.com/linux/ubuntu/gpg",
+							KeyFormat: v1alpha1.KeyFormatASC,
+						},
+					},
+					Dependencies: []v1alpha1.DependencyConfig{
+						{Name: "containerd.io"},
+					},
+				}}
+				actuator = NewActuator(mgr, extensionConfig)
+				userData, _, _, _, err := actuator.Reconcile(ctx, log, osc)
+				Expect(err).NotTo(HaveOccurred())
+
+				expectUserDataToMatch(userData, fixtures.UserDataGpgKey)
+			})
+
+			It("should include signed-by option when inline GPG key is provided", func() {
+				extensionConfig := Config{ExtensionConfig: &v1alpha1.ExtensionConfig{
+					AptRepositories: []v1alpha1.AptRepository{
+						{
+							Name: "docker",
+							URI:  "https://download.docker.com/linux/ubuntu",
+							Key: `-----BEGIN PGP PUBLIC KEY BLOCK-----
+mQINBFit2ioBEADhWpZ8/wvZ6hUTiXOwQHXMAlaFHcPH9hAtr4F1y2+OYdbtMuth
+lO49r1nayzQb8T14bZf2DdpOjXn8b5XrZQ9JZ5hZ1XyZ5XyZ5XyZ5XyZ5XyZ5XyZ
+-----END PGP PUBLIC KEY BLOCK-----`,
+						},
+					},
+					Dependencies: []v1alpha1.DependencyConfig{
+						{Name: "containerd.io"},
+					},
+				}}
+				actuator = NewActuator(mgr, extensionConfig)
+				userData, _, _, _, err := actuator.Reconcile(ctx, log, osc)
+				Expect(err).NotTo(HaveOccurred())
+
+				expectUserDataToMatch(userData, fixtures.UserDataGpgKeyInline)
+			})
+		})
+
+		Describe("#Reconcile with pinned dependencies", func() {
+			It("should generate version and build serial specific install commands", func() {
+				extensionConfig := Config{ExtensionConfig: &v1alpha1.ExtensionConfig{
+					DisableUnattendedUpgrades: ptr.To(false),
+					NTP: &v1alpha1.NTPConfig{
+						Daemon: v1alpha1.SystemdTimesyncd,
+					},
+					AptRepositories: []v1alpha1.AptRepository{
+						{Name: "docker", URI: "https://download.docker.com/linux/ubuntu"},
+					},
+					Dependencies: []v1alpha1.DependencyConfig{
+						{
+							Name:              "containerd.io",
+							Version:           "1.7.29-1~ubuntu.22.04~jammy",
+							UbuntuVersion:     "22.04",
+							UbuntuBuildSerial: "20250725",
+							Hold:              true,
+						},
+						{
+							Name:              "containerd.io",
+							Version:           "2.2.4-1~ubuntu.26.04~resolute",
+							UbuntuVersion:     "26.04",
+							UbuntuBuildSerial: "20260520",
+							Hold:              true,
+						},
+					},
+				}}
+				actuator = NewActuator(mgr, extensionConfig)
+				userData, _, _, _, err := actuator.Reconcile(ctx, log, osc)
+				Expect(err).NotTo(HaveOccurred())
+
+				expectUserDataToMatch(userData, fixtures.UserDataPinnedDeps)
+			})
+		})
+
+		Describe("#Reconcile with pinned dependencies and fallback", func() {
+			It("should generate version and build serial specific install commands with a fallback", func() {
+				extensionConfig := Config{ExtensionConfig: &v1alpha1.ExtensionConfig{
+					DisableUnattendedUpgrades: ptr.To(false),
+					NTP: &v1alpha1.NTPConfig{
+						Daemon: v1alpha1.SystemdTimesyncd,
+					},
+					AptRepositories: []v1alpha1.AptRepository{
+						{Name: "docker", URI: "https://download.docker.com/linux/ubuntu"},
+					},
+					Dependencies: []v1alpha1.DependencyConfig{
+						{
+							Name:              "containerd.io",
+							Version:           "1.7.29-1~ubuntu.22.04~jammy",
+							UbuntuVersion:     "22.04",
+							UbuntuBuildSerial: "20250725",
+							Hold:              true,
+						},
+						{
+							Name:              "containerd.io",
+							Version:           "2.2.4-1~ubuntu.26.04~resolute",
+							UbuntuVersion:     "26.04",
+							UbuntuBuildSerial: "20260520",
+							Hold:              true,
+						},
+						{
+							Name: "containerd.io",
+						},
+					},
+				}}
+				actuator = NewActuator(mgr, extensionConfig)
+				userData, _, _, _, err := actuator.Reconcile(ctx, log, osc)
+				Expect(err).NotTo(HaveOccurred())
+
+				expectUserDataToMatch(userData, fixtures.UserDataPinnedDepsWithFallback)
+			})
+
+			It("should handle fallback regardless of dependency order", func() {
+				extensionConfig := Config{ExtensionConfig: &v1alpha1.ExtensionConfig{
+					DisableUnattendedUpgrades: ptr.To(false),
+					NTP: &v1alpha1.NTPConfig{
+						Daemon: v1alpha1.SystemdTimesyncd,
+					},
+					AptRepositories: []v1alpha1.AptRepository{
+						{Name: "docker", URI: "https://download.docker.com/linux/ubuntu"},
+					},
+					Dependencies: []v1alpha1.DependencyConfig{
+						{
+							Name: "containerd.io",
+						},
+						{
+							Name:              "containerd.io",
+							Version:           "1.7.29-1~ubuntu.22.04~jammy",
+							UbuntuVersion:     "22.04",
+							UbuntuBuildSerial: "20250725",
+							Hold:              true,
+						},
+						{
+							Name:              "containerd.io",
+							Version:           "2.2.4-1~ubuntu.26.04~resolute",
+							UbuntuVersion:     "26.04",
+							UbuntuBuildSerial: "20260520",
+							Hold:              true,
+						},
+					},
+				}}
+				actuator = NewActuator(mgr, extensionConfig)
+				userData, _, _, _, err := actuator.Reconcile(ctx, log, osc)
+				Expect(err).NotTo(HaveOccurred())
+
+				expectUserDataToMatch(userData, fixtures.UserDataPinnedDepsWithFallback)
+			})
+		})
+
+		Describe("#Reconcile with pinned dependencies using different names per OS version", func() {
+			It("should not exit on unmatched constraints and continue with remaining packages", func() {
+				extensionConfig := Config{ExtensionConfig: &v1alpha1.ExtensionConfig{
+					DisableUnattendedUpgrades: ptr.To(false),
+					NTP: &v1alpha1.NTPConfig{
+						Daemon: v1alpha1.SystemdTimesyncd,
+					},
+					Dependencies: []v1alpha1.DependencyConfig{
+						{
+							Name:          "containerd.io",
+							Version:       "1.7.29-1~ubuntu.22.04~jammy",
+							UbuntuVersion: "22.04",
+						},
+						{
+							Name:          "containerd",
+							Version:       "2.2.4-1~ubuntu.26.04~resolute",
+							UbuntuVersion: "26.04",
+						},
+					},
+				}}
+				actuator = NewActuator(mgr, extensionConfig)
+				userData, _, _, _, err := actuator.Reconcile(ctx, log, osc)
+				Expect(err).NotTo(HaveOccurred())
+
+				expectUserDataToMatch(userData, fixtures.UserDataPinnedDepsDifferentNames)
 			})
 		})
 	})

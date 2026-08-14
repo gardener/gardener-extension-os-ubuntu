@@ -8,9 +8,10 @@ import "github.com/gardener/gardener-extension-os-ubuntu/pkg/controller/config/v
 
 // APTConfig with snake case is needed for cloud-init
 type APTConfig struct {
-	PreserveSourcesList bool         `json:"preserve_sources_list"`
-	Primary             []APTArchive `json:"primary,omitempty"`
-	Security            []APTArchive `json:"security,omitempty"`
+	PreserveSourcesList bool                 `json:"preserve_sources_list"`
+	Primary             []APTArchive         `json:"primary,omitempty"`
+	Security            []APTArchive         `json:"security,omitempty"`
+	Sources             map[string]APTSource `json:"sources,omitempty"`
 }
 
 // APTArchive with snake case is needed for cloud-init
@@ -21,8 +22,26 @@ type APTArchive struct {
 	SearchDNS bool                    `json:"search_dns,omitempty"`
 }
 
+// APTSource describes a single cloud-init apt source entry.
+type APTSource struct {
+	Source string `json:"source"`
+	Key    string `json:"key,omitempty"`
+}
+
 type APTCloudInit struct {
-	APT APTConfig `json:"apt,omitempty"`
+	APT        APTConfig   `json:"apt,omitempty"`
+	WriteFiles []WriteFile `json:"write_files,omitempty"`
+}
+
+type WriteFile struct {
+	Path        string           `json:"path"`
+	Source      *WriteFileSource `json:"source,omitempty"`
+	Permissions string           `json:"permissions"`
+	Owner       string           `json:"owner"`
+}
+
+type WriteFileSource struct {
+	URI string `json:"uri"`
 }
 
 type FilePart struct {

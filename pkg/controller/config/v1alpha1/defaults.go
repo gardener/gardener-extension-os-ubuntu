@@ -20,6 +20,18 @@ func SetDefaults_ExtensionConfig(obj *ExtensionConfig) {
 	if obj.DisableUnattendedUpgrades == nil {
 		obj.DisableUnattendedUpgrades = ptr.To(false)
 	}
+
+	if obj.Dependencies == nil {
+		obj.Dependencies = []DependencyConfig{
+			{Name: "containerd"},
+			{Name: "runc"},
+			{Name: "socat"},
+			{Name: "nfs-common"},
+			{Name: "logrotate"},
+			{Name: "jq"},
+			{Name: "policykit-1"},
+		}
+	}
 }
 
 func SetDefaults_NTPConfig(obj *NTPConfig) {

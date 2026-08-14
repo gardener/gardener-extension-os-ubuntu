@@ -28,9 +28,87 @@ type ExtensionConfig struct {
 	// DisableUnattendedUpgrades to disable unattended upgrades in ubuntu
 	// +optional
 	DisableUnattendedUpgrades *bool `json:"disableUnattendedUpgrades,omitempty"`
+	// AptRepositories is the list of additional apt repositories to configure
+	// via cloud-init.
+	// +optional
+	AptRepositories []AptRepository `json:"aptRepositories,omitempty"`
+	// Dependencies is the list of apt packages to install on the node. If empty,
+	// a default set of unpinned packages is installed. Each dependency may
+	// optionally target a specific Ubuntu version and/or build serial.
+	// +optional
+	Dependencies []DependencyConfig `json:"dependencies,omitempty"`
 	// Mirror to set custom Ubuntu mirror
 	// +optional
 	APTConfig *APTConfig `json:"apt,omitempty"`
+}
+
+// KeyFormat specifies the format of a GPG key. It determines the file
+// extension of the key file written by cloud-init, which must match the key's
+// content.
+type KeyFormat string
+
+const (
+	// KeyFormatASC denotes an ASCII-armored GPG key (file extension .asc). apt
+	// dearmors .asc keyring files before use.
+	KeyFormatASC KeyFormat = "asc"
+	// KeyFormatGPG denotes a binary GPG keyring (file extension .gpg).
+	KeyFormatGPG KeyFormat = "gpg"
+)
+
+// AptRepository describes an additional apt repository to configure via
+// cloud-init.
+type AptRepository struct {
+	// Name is a unique name for the apt source.
+	Name string `json:"name"`
+	// URI is the base URI of the apt repository. For the docker repository this
+	// is typically https://download.docker.com/linux/ubuntu.
+	URI string `json:"uri"`
+	// Key is the ASCII-armored GPG key used to sign the repository. If empty,
+	// the repository is configured without GPG signature verification.
+	// +optional
+	Key string `json:"key,omitempty"`
+	// KeyURL is the URL to download the GPG key from. The key is downloaded
+	// via cloud-init write_files to /etc/apt/keyrings/<name>.<keyFormat> and
+	// referenced with signed-by. Mutually exclusive with Key.
+	// +optional
+	KeyURL string `json:"keyUrl,omitempty"`
+	// KeyFormat specifies the format of the GPG key served by KeyURL. It
+	// determines the file extension of the key written by cloud-init, which
+	// must match the key's content: "asc" for ASCII-armored keys or "gpg" for
+	// binary keyrings. Defaults to "asc".
+	// +optional
+	KeyFormat KeyFormat `json:"keyFormat,omitempty"`
+	// Suite is the apt suite to use. Defaults to "$RELEASE" which cloud-init
+	// substitutes with the release codename.
+	// +optional
+	Suite string `json:"suite,omitempty"`
+	// Components is the list of apt components to use. Defaults to ["stable"].
+	// +optional
+	Components []string `json:"components,omitempty"`
+}
+
+// DependencyConfig describes an apt package to install.
+type DependencyConfig struct {
+	// Name is the name of the apt package.
+	Name string `json:"name"`
+	// Version is the exact apt package version to install. If empty, the latest
+	// available version is installed.
+	// +optional
+	Version string `json:"version,omitempty"`
+	// UbuntuVersion optionally restricts this dependency to a specific Ubuntu
+	// version (e.g. "22.04"). The value is matched against VERSION_ID from
+	// /etc/os-release.
+	// +optional
+	UbuntuVersion string `json:"ubuntuVersion,omitempty"`
+	// UbuntuBuildSerial optionally restricts this dependency to a specific
+	// Ubuntu build serial (e.g. "20250725"). The value is matched against the
+	// serial field in /etc/cloud/build.info.
+	// +optional
+	UbuntuBuildSerial string `json:"ubuntuBuildSerial,omitempty"`
+	// Hold, if true, marks the package on apt hold after installation so that
+	// apt upgrade does not update it.
+	// +optional
+	Hold bool `json:"hold,omitempty"`
 }
 
 // NTPConfig General NTP Config for either systemd-timesyncd or ntpd
@@ -66,7 +144,7 @@ type APTArchive struct {
 type Architecture string
 
 const (
-	AMD64   Architecture = constants.ArchitectureAMD64
-	ARM64   Architecture = constants.ArchitectureARM64
-	Default Architecture = "default"
+	AMD64       Architecture = constants.ArchitectureAMD64
+	ARM64       Architecture = constants.ArchitectureARM64
+	ArchDefault Architecture = "default"
 )
