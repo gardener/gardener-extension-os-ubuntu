@@ -12,6 +12,9 @@ config: {}
 #    ntpd:
 #      servers:
 #        - ptbtime1.ptb.de
+#    ubuntuVersionOverrides:
+#      - ubuntuVersion: "26.04"
+#        daemon: none
 #  apt:
 #    preserveSourcesList: false
 #    primary:

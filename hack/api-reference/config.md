@@ -268,7 +268,7 @@ string array
 
 
 <p>
-(<em>Appears on:</em><a href="#ntpconfig">NTPConfig</a>)
+(<em>Appears on:</em><a href="#ntpconfig">NTPConfig</a>, <a href="#ntpubuntuversionoverride">NTPUbuntuVersionOverride</a>)
 </p>
 
 <p>
@@ -488,7 +488,7 @@ NTPConfig General NTP Config for either systemd-timesyncd or ntpd
 </em>
 </td>
 <td>
-<p>Daemon One of either systemd-timesyncd or ntp</p>
+<p>Daemon One of either systemd-timesyncd, ntp or none.</p>
 </td>
 </tr>
 <tr>
@@ -501,6 +501,18 @@ NTPConfig General NTP Config for either systemd-timesyncd or ntpd
 <td>
 <em>(Optional)</em>
 <p>NTPD to configure the ntpd client</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>ubuntuVersionOverrides</code></br>
+<em>
+<a href="#ntpubuntuversionoverride">NTPUbuntuVersionOverride</a> array
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>UbuntuVersionOverrides selects a different daemon for specific Ubuntu<br />versions. The override is resolved on the node by matching UbuntuVersion<br />against VERSION_ID from /etc/os-release. If no override matches, Daemon<br />is used.</p>
 </td>
 </tr>
 
@@ -549,6 +561,54 @@ string array
 </td>
 <td>
 <p>Interfaces for ntpd to bind to. Can be more than one.</p>
+</td>
+</tr>
+
+</tbody>
+</table>
+
+
+<h3 id="ntpubuntuversionoverride">NTPUbuntuVersionOverride
+</h3>
+
+
+<p>
+(<em>Appears on:</em><a href="#ntpconfig">NTPConfig</a>)
+</p>
+
+<p>
+NTPUbuntuVersionOverride overrides the NTP daemon for a specific Ubuntu version.
+</p>
+
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+
+<tr>
+<td>
+<code>ubuntuVersion</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>UbuntuVersion is matched against VERSION_ID from /etc/os-release.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>daemon</code></br>
+<em>
+<a href="#daemon">Daemon</a>
+</em>
+</td>
+<td>
+<p>Daemon One of either systemd-timesyncd, ntp or none.</p>
 </td>
 </tr>
 

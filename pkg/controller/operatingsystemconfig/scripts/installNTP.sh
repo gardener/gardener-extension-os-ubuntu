@@ -39,25 +39,49 @@ package_installed() {
   return 0
 }
 
+resolve_daemon () {
+  local daemon="$1"
+  shift
+  local ubuntu_version=""
+  if [ -f "$OS_RELEASE_FILE" ]; then
+    ubuntu_version=$(grep '^VERSION_ID=' "$OS_RELEASE_FILE" | cut -d= -f2 | tr -d '"')
+  fi
+  for override in "$@"; do
+    if [ "${override%%=*}" = "$ubuntu_version" ]; then
+      daemon="${override#*=}"
+      break
+    fi
+  done
+  echo "$daemon"
+}
+
+OS_RELEASE_FILE="${OS_RELEASE_FILE:-/etc/os-release}"
+
 if [ -z "$1" ]; then
-    echo "Usage: $0 <option>"
+    echo "Usage: $0 <option> [<ubuntu-version>=<option>...]"
     echo "Options:"
     echo "  ntpd                Install ntp"
     echo "  systemd-timesyncd   Install systemd-timesyncd"
+    echo "  none                Do not manage the NTP client, keep the default"
     exit 1
 fi
 
+DAEMON=$(resolve_daemon "$@")
+
 # Process the argument
-case "$1" in
+case "$DAEMON" in
     ntpd)
         ntpd
         ;;
     systemd-timesyncd)
         systemd_timesyncd
         ;;
+    none)
+        echo "NTP client management is disabled for this Ubuntu version, keeping the default."
+        ;;
     *)
-        echo "Invalid option: $1"
-        echo "Please use 'ntpd' or 'systemd-timesyncd'."
+        echo "Invalid option: $DAEMON"
+        echo "Please use 'ntpd' or 'systemd-timesyncd' or 'none'."
         exit 1
         ;;
 esac

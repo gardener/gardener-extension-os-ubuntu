@@ -574,6 +574,101 @@ WantedBy=multi-user.target
 				),
 				)
 			})
+			It("should pass Ubuntu version overrides to the ntp install script", func() {
+				extensionConfig := Config{
+					ExtensionConfig: &v1alpha1.ExtensionConfig{
+						NTP: &v1alpha1.NTPConfig{
+							Daemon: v1alpha1.NTPD,
+							NTPD:   &v1alpha1.NTPDConfig{Servers: []string{"127.0.0.1"}},
+							UbuntuVersionOverrides: []v1alpha1.NTPUbuntuVersionOverride{
+								{UbuntuVersion: "22.04", Daemon: v1alpha1.SystemdTimesyncd},
+								{UbuntuVersion: "26.04", Daemon: v1alpha1.None},
+							},
+						},
+					},
+				}
+				actuator = NewActuator(mgr, extensionConfig)
+				_, extensionUnits, extensionFiles, _, err := actuator.Reconcile(ctx, log, osc)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(extensionUnits).To(ContainElement(extensionsv1alpha1.Unit{
+					Name:    "install-ntp-client.service",
+					Command: ptr.To(extensionsv1alpha1.CommandRestart),
+					Content: ptr.To(`[Unit]
+Description=Oneshot service to install requested ntp client
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash /opt/gardener/bin/install-ntp.sh ntpd 22.04=systemd-timesyncd 26.04=none
+
+[Install]
+WantedBy=multi-user.target
+`),
+				}))
+
+				Expect(extensionFiles).To(ContainElement(gstruct.MatchFields(gstruct.IgnoreExtras, gstruct.Fields{
+					"Path": Equal("/etc/ntp.conf"),
+				})))
+			})
+			It("should write ntp.conf if ntp is only selected in an Ubuntu version override", func() {
+				extensionConfig := Config{
+					ExtensionConfig: &v1alpha1.ExtensionConfig{
+						NTP: &v1alpha1.NTPConfig{
+							Daemon: v1alpha1.None,
+							NTPD:   &v1alpha1.NTPDConfig{Servers: []string{"127.0.0.1"}},
+							UbuntuVersionOverrides: []v1alpha1.NTPUbuntuVersionOverride{
+								{UbuntuVersion: "22.04", Daemon: v1alpha1.NTPD},
+							},
+						},
+					},
+				}
+				actuator = NewActuator(mgr, extensionConfig)
+				_, extensionUnits, extensionFiles, _, err := actuator.Reconcile(ctx, log, osc)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(extensionUnits).To(ContainElement(gstruct.MatchFields(gstruct.IgnoreExtras, gstruct.Fields{
+					"Name":    Equal("install-ntp-client.service"),
+					"Content": gstruct.PointTo(ContainSubstring("ExecStart=/bin/bash /opt/gardener/bin/install-ntp.sh none 22.04=ntpd\n")),
+				})))
+				Expect(extensionFiles).To(ContainElement(gstruct.MatchFields(gstruct.IgnoreExtras, gstruct.Fields{
+					"Path": Equal("/etc/ntp.conf"),
+				})))
+			})
+			It("should not write ntp.conf if ntp is not selected at all", func() {
+				extensionConfig := Config{
+					ExtensionConfig: &v1alpha1.ExtensionConfig{
+						NTP: &v1alpha1.NTPConfig{
+							Daemon: v1alpha1.SystemdTimesyncd,
+							UbuntuVersionOverrides: []v1alpha1.NTPUbuntuVersionOverride{
+								{UbuntuVersion: "26.04", Daemon: v1alpha1.None},
+							},
+						},
+					},
+				}
+				actuator = NewActuator(mgr, extensionConfig)
+				_, extensionUnits, extensionFiles, _, err := actuator.Reconcile(ctx, log, osc)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(extensionUnits).To(ContainElement(gstruct.MatchFields(gstruct.IgnoreExtras, gstruct.Fields{
+					"Name":    Equal("install-ntp-client.service"),
+					"Content": gstruct.PointTo(ContainSubstring("ExecStart=/bin/bash /opt/gardener/bin/install-ntp.sh systemd-timesyncd 26.04=none\n")),
+				})))
+				Expect(extensionFiles).NotTo(ContainElement(gstruct.MatchFields(gstruct.IgnoreExtras, gstruct.Fields{
+					"Path": Equal("/etc/ntp.conf"),
+				})))
+			})
+			It("should return an error for an unsupported daemon in an Ubuntu version override", func() {
+				extensionConfig := Config{
+					ExtensionConfig: &v1alpha1.ExtensionConfig{
+						NTP: &v1alpha1.NTPConfig{
+							Daemon: v1alpha1.SystemdTimesyncd,
+							UbuntuVersionOverrides: []v1alpha1.NTPUbuntuVersionOverride{
+								{UbuntuVersion: "26.04", Daemon: "chronyd"},
+							},
+						},
+					},
+				}
+				actuator = NewActuator(mgr, extensionConfig)
+				_, _, _, _, err := actuator.Reconcile(ctx, log, osc)
+				Expect(err).To(MatchError(ContainSubstring("unsupported NTP daemon: chronyd")))
+			})
 		})
 	})
 })
