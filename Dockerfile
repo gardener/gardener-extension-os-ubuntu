@@ -10,7 +10,7 @@ COPY . .
 RUN make install
 
 ############# gardener-extension-os-ubuntu
-FROM gcr.io/distroless/static-debian11:nonroot AS gardener-extension-os-ubuntu
+FROM gcr.io/distroless/static-debian12:nonroot AS gardener-extension-os-ubuntu
 WORKDIR /
 
 COPY --from=builder /go/bin/gardener-extension-os-ubuntu /gardener-extension-os-ubuntu
