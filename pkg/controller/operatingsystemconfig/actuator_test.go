@@ -654,21 +654,6 @@ WantedBy=multi-user.target
 					"Path": Equal("/etc/ntp.conf"),
 				})))
 			})
-			It("should return an error for an unsupported daemon in an Ubuntu version override", func() {
-				extensionConfig := Config{
-					ExtensionConfig: &v1alpha1.ExtensionConfig{
-						NTP: &v1alpha1.NTPConfig{
-							Daemon: v1alpha1.SystemdTimesyncd,
-							UbuntuVersionOverrides: []v1alpha1.NTPUbuntuVersionOverride{
-								{UbuntuVersion: "26.04", Daemon: "chronyd"},
-							},
-						},
-					},
-				}
-				actuator = NewActuator(mgr, extensionConfig)
-				_, _, _, _, err := actuator.Reconcile(ctx, log, osc)
-				Expect(err).To(MatchError(ContainSubstring("unsupported NTP daemon: chronyd")))
-			})
 		})
 	})
 })

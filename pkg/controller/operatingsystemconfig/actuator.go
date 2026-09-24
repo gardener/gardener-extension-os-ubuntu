@@ -413,22 +413,12 @@ func (a *actuator) configureNTPDaemon(extensionUnits []extensionsv1alpha1.Unit, 
 	})
 
 	ntpConfig := a.extensionConfig.NTP
-	daemons := []configv1alpha1.Daemon{ntpConfig.Daemon}
 	scriptArgs := []string{string(ntpConfig.Daemon)}
 	for _, override := range ntpConfig.UbuntuVersionOverrides {
-		daemons = append(daemons, override.Daemon)
 		scriptArgs = append(scriptArgs, fmt.Sprintf("%s=%s", override.UbuntuVersion, override.Daemon))
 	}
 
-	for _, daemon := range daemons {
-		switch daemon {
-		case configv1alpha1.SystemdTimesyncd, configv1alpha1.NTPD, configv1alpha1.None:
-		default:
-			return nil, nil, fmt.Errorf("unsupported NTP daemon: %s", daemon)
-		}
-	}
-
-	if helper.UsesNTPDaemon(ntpConfig, configv1alpha1.NTPD) {
+	if helper.IsDaemonConfigured(ntpConfig, configv1alpha1.NTPD) {
 		templateData, err := a.generateNTPConfig()
 		if err != nil {
 			return nil, nil, fmt.Errorf("error generating NTP config: %v", err)

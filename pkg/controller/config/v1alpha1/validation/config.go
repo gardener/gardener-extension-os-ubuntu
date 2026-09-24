@@ -39,7 +39,7 @@ func ValidateExtensionConfig(config *configv1alpha1.ExtensionConfig) field.Error
 		allErrs = append(allErrs, validateNTPUbuntuVersionOverrides(config.NTP.UbuntuVersionOverrides, rootPath.Child("ubuntuVersionOverrides"))...)
 
 		// Check if user configured systemd-timesyncd daemon with ntpd config
-		if config.NTP.NTPD != nil && !helper.UsesNTPDaemon(config.NTP, configv1alpha1.NTPD) {
+		if config.NTP.NTPD != nil && !helper.IsDaemonConfigured(config.NTP, configv1alpha1.NTPD) {
 			allErrs = append(allErrs, field.Forbidden(rootPath.Child("ntpd"), "NTPD config is only allowed if ntpd is selected as daemon or in an Ubuntu version override"))
 		}
 

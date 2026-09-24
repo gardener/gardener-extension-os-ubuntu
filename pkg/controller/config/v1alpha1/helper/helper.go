@@ -8,7 +8,7 @@ import (
 	configv1alpha1 "github.com/gardener/gardener-extension-os-ubuntu/pkg/controller/config/v1alpha1"
 )
 
-func UsesNTPDaemon(config *configv1alpha1.NTPConfig, daemon configv1alpha1.Daemon) bool {
+func IsDaemonConfigured(config *configv1alpha1.NTPConfig, daemon configv1alpha1.Daemon) bool {
 	if config == nil {
 		return false
 	}
