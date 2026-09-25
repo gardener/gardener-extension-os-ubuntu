@@ -14,6 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	configv1alpha1 "github.com/gardener/gardener-extension-os-ubuntu/pkg/controller/config/v1alpha1"
+	"github.com/gardener/gardener-extension-os-ubuntu/pkg/controller/config/v1alpha1/helper"
 )
 
 var (
@@ -22,13 +23,12 @@ var (
 	validUbuntuVersion     = regexp.MustCompile(`^[0-9]+\.[0-9]+$`)
 	validBuildSerial       = regexp.MustCompile(`^[0-9.]+$`)
 	validAptRepositoryName = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9._-]*$`)
+	validDaemonNames       = sets.New(configv1alpha1.SystemdTimesyncd, configv1alpha1.NTPD, configv1alpha1.None)
 )
 
 func ValidateExtensionConfig(config *configv1alpha1.ExtensionConfig) field.ErrorList {
 	allErrs := field.ErrorList{}
 	var rootPath *field.Path
-
-	validDaemonNames := sets.New(configv1alpha1.SystemdTimesyncd, configv1alpha1.NTPD)
 
 	if config.NTP != nil {
 		// Make sure daemon name is valid
@@ -36,9 +36,11 @@ func ValidateExtensionConfig(config *configv1alpha1.ExtensionConfig) field.Error
 			allErrs = append(allErrs, field.NotSupported(rootPath.Child("daemon"), config.NTP.Daemon, validDaemonNames.UnsortedList()))
 		}
 
+		allErrs = append(allErrs, validateNTPUbuntuVersionOverrides(config.NTP.UbuntuVersionOverrides, rootPath.Child("ubuntuVersionOverrides"))...)
+
 		// Check if user configured systemd-timesyncd daemon with ntpd config
-		if config.NTP.Daemon == configv1alpha1.SystemdTimesyncd && config.NTP.NTPD != nil {
-			allErrs = append(allErrs, field.Forbidden(rootPath.Child("ntpd"), "NTPD config is not allowed if systemd-timesyncd is selected"))
+		if config.NTP.NTPD != nil && !helper.IsDaemonConfigured(config.NTP, configv1alpha1.NTPD) {
+			allErrs = append(allErrs, field.Forbidden(rootPath.Child("ntpd"), "NTPD config is only allowed if ntpd is selected as daemon or in an Ubuntu version override"))
 		}
 
 		if config.NTP.NTPD != nil {
@@ -53,6 +55,28 @@ func ValidateExtensionConfig(config *configv1alpha1.ExtensionConfig) field.Error
 	allErrs = append(allErrs, validateAptRepositories(config.AptRepositories, rootPath.Child("aptRepositories"))...)
 	allErrs = append(allErrs, validateDependencies(config.Dependencies, rootPath.Child("dependencies"))...)
 
+	return allErrs
+}
+
+func validateNTPUbuntuVersionOverrides(overrides []configv1alpha1.NTPUbuntuVersionOverride, fldPath *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
+	seenVersions := sets.New[string]()
+	for i, override := range overrides {
+		idxPath := fldPath.Index(i)
+		switch {
+		case override.UbuntuVersion == "":
+			allErrs = append(allErrs, field.Required(idxPath.Child("ubuntuVersion"), "ubuntuVersion is required"))
+		case !validUbuntuVersion.MatchString(override.UbuntuVersion):
+			allErrs = append(allErrs, field.Invalid(idxPath.Child("ubuntuVersion"), override.UbuntuVersion, "must match format X.Y (e.g. 26.04)"))
+		case seenVersions.Has(override.UbuntuVersion):
+			allErrs = append(allErrs, field.Duplicate(idxPath.Child("ubuntuVersion"), override.UbuntuVersion))
+		default:
+			seenVersions.Insert(override.UbuntuVersion)
+		}
+		if !validDaemonNames.Has(override.Daemon) {
+			allErrs = append(allErrs, field.NotSupported(idxPath.Child("daemon"), override.Daemon, validDaemonNames.UnsortedList()))
+		}
+	}
 	return allErrs
 }
 

@@ -23,6 +23,7 @@ import (
 	"sigs.k8s.io/yaml"
 
 	configv1alpha1 "github.com/gardener/gardener-extension-os-ubuntu/pkg/controller/config/v1alpha1"
+	"github.com/gardener/gardener-extension-os-ubuntu/pkg/controller/config/v1alpha1/helper"
 	"github.com/gardener/gardener-extension-os-ubuntu/pkg/internal"
 )
 
@@ -411,9 +412,13 @@ func (a *actuator) configureNTPDaemon(extensionUnits []extensionsv1alpha1.Unit, 
 		Permissions: ptr.To[uint32](0744),
 	})
 
-	switch a.extensionConfig.NTP.Daemon {
-	case configv1alpha1.SystemdTimesyncd:
-	case configv1alpha1.NTPD:
+	ntpConfig := a.extensionConfig.NTP
+	scriptArgs := []string{string(ntpConfig.Daemon)}
+	for _, override := range ntpConfig.UbuntuVersionOverrides {
+		scriptArgs = append(scriptArgs, fmt.Sprintf("%s=%s", override.UbuntuVersion, override.Daemon))
+	}
+
+	if helper.IsDaemonConfigured(ntpConfig, configv1alpha1.NTPD) {
 		templateData, err := a.generateNTPConfig()
 		if err != nil {
 			return nil, nil, fmt.Errorf("error generating NTP config: %v", err)
@@ -423,8 +428,6 @@ func (a *actuator) configureNTPDaemon(extensionUnits []extensionsv1alpha1.Unit, 
 			Content:     extensionsv1alpha1.FileContent{Inline: &extensionsv1alpha1.FileContentInline{Data: templateData}},
 			Permissions: ptr.To[uint32](0644),
 		})
-	default:
-		return nil, nil, fmt.Errorf("unsupported NTP daemon: %s", a.extensionConfig.NTP.Daemon)
 	}
 
 	extensionUnits = append(extensionUnits, extensionsv1alpha1.Unit{
@@ -434,7 +437,7 @@ Description=Oneshot service to install requested ntp client
 
 [Service]
 Type=oneshot
-ExecStart=` + fmt.Sprintf("/bin/bash %s %s", filePathNTPScript, a.extensionConfig.NTP.Daemon) + `
+ExecStart=` + fmt.Sprintf("/bin/bash %s %s", filePathNTPScript, strings.Join(scriptArgs, " ")) + `
 
 [Install]
 WantedBy=multi-user.target

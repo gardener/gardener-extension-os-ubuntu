@@ -7,6 +7,7 @@ package validation
 import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gstruct"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	configv1alpha1 "github.com/gardener/gardener-extension-os-ubuntu/pkg/controller/config/v1alpha1"
@@ -73,6 +74,70 @@ var _ = Describe("ExtensionConfig validation", func() {
 		}}}
 		errs := ValidateExtensionConfig(config)
 		Expect(errs).To(BeEmpty())
+	})
+
+	It("should allow daemon none", func() {
+		config.NTP.Daemon = configv1alpha1.None
+		Expect(ValidateExtensionConfig(config)).To(BeEmpty())
+	})
+
+	Context("Ubuntu version overrides", func() {
+		It("should allow disabling ntp management for a specific Ubuntu version", func() {
+			config.NTP.Daemon = configv1alpha1.NTPD
+			config.NTP.NTPD = &configv1alpha1.NTPDConfig{Servers: []string{"ntp.ubuntu.com"}}
+			config.NTP.UbuntuVersionOverrides = []configv1alpha1.NTPUbuntuVersionOverride{
+				{UbuntuVersion: "26.04", Daemon: configv1alpha1.None},
+			}
+			Expect(ValidateExtensionConfig(config)).To(BeEmpty())
+		})
+		It("should allow ntpd config if ntpd is only selected in an override", func() {
+			config.NTP.Daemon = configv1alpha1.None
+			config.NTP.NTPD = &configv1alpha1.NTPDConfig{Servers: []string{"ntp.ubuntu.com"}}
+			config.NTP.UbuntuVersionOverrides = []configv1alpha1.NTPUbuntuVersionOverride{
+				{UbuntuVersion: "22.04", Daemon: configv1alpha1.NTPD},
+			}
+			Expect(ValidateExtensionConfig(config)).To(BeEmpty())
+		})
+		It("should forbid ntpd config if ntpd is selected nowhere", func() {
+			config.NTP.Daemon = configv1alpha1.SystemdTimesyncd
+			config.NTP.NTPD = &configv1alpha1.NTPDConfig{Servers: []string{"ntp.ubuntu.com"}}
+			config.NTP.UbuntuVersionOverrides = []configv1alpha1.NTPUbuntuVersionOverride{
+				{UbuntuVersion: "26.04", Daemon: configv1alpha1.None},
+			}
+			errs := ValidateExtensionConfig(config)
+			Expect(errs).To(ConsistOf(PointTo(MatchFields(IgnoreExtras, Fields{
+				"Type":  Equal(field.ErrorTypeForbidden),
+				"Field": Equal("ntpd"),
+			}))))
+		})
+		It("should reject invalid overrides", func() {
+			config.NTP.UbuntuVersionOverrides = []configv1alpha1.NTPUbuntuVersionOverride{
+				{UbuntuVersion: "", Daemon: configv1alpha1.None},
+				{UbuntuVersion: "26.04, foo=bar", Daemon: configv1alpha1.None},
+				{UbuntuVersion: "26.04", Daemon: "chronyd"},
+				{UbuntuVersion: "26.04", Daemon: configv1alpha1.None},
+			}
+			errs := ValidateExtensionConfig(config)
+			Expect(errs).To(ConsistOf(
+				PointTo(MatchFields(IgnoreExtras, Fields{
+					"Type":  Equal(field.ErrorTypeRequired),
+					"Field": Equal("ubuntuVersionOverrides[0].ubuntuVersion"),
+				})),
+				PointTo(MatchFields(IgnoreExtras, Fields{
+					"Type":  Equal(field.ErrorTypeInvalid),
+					"Field": Equal("ubuntuVersionOverrides[1].ubuntuVersion"),
+				})),
+				PointTo(MatchFields(IgnoreExtras, Fields{
+					"Type":  Equal(field.ErrorTypeNotSupported),
+					"Field": Equal("ubuntuVersionOverrides[2].daemon"),
+				})),
+				PointTo(MatchFields(IgnoreExtras, Fields{
+					"Type":  Equal(field.ErrorTypeDuplicate),
+					"Field": Equal("ubuntuVersionOverrides[3].ubuntuVersion"),
+				})),
+			))
+		})
+
 	})
 
 	It("should fail with an invalid URI and invalid search for primary apt mirror", func() {

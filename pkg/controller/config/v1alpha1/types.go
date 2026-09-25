@@ -14,6 +14,7 @@ type Daemon string
 const (
 	SystemdTimesyncd Daemon = "systemd-timesyncd"
 	NTPD             Daemon = "ntpd"
+	None             Daemon = "none"
 )
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -113,11 +114,25 @@ type DependencyConfig struct {
 
 // NTPConfig General NTP Config for either systemd-timesyncd or ntpd
 type NTPConfig struct {
-	// Daemon One of either systemd-timesyncd or ntp
+	// Daemon One of either systemd-timesyncd, ntp or none.
 	Daemon Daemon `json:"daemon"`
 	// NTPD to configure the ntpd client
 	// +optional
 	NTPD *NTPDConfig `json:"ntpd,omitempty"`
+	// UbuntuVersionOverrides selects a different daemon for specific Ubuntu
+	// versions. The override is resolved on the node by matching UbuntuVersion
+	// against VERSION_ID from /etc/os-release. If no override matches, Daemon
+	// is used.
+	// +optional
+	UbuntuVersionOverrides []NTPUbuntuVersionOverride `json:"ubuntuVersionOverrides,omitempty"`
+}
+
+// NTPUbuntuVersionOverride overrides the NTP daemon for a specific Ubuntu version.
+type NTPUbuntuVersionOverride struct {
+	// UbuntuVersion is matched against VERSION_ID from /etc/os-release.
+	UbuntuVersion string `json:"ubuntuVersion"`
+	// Daemon One of either systemd-timesyncd, ntp or none.
+	Daemon Daemon `json:"daemon"`
 }
 
 // NTPDConfig is the struct used in the ntp-config.conf.tpl template file
