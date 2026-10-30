@@ -653,6 +653,127 @@ WantedBy=multi-user.target
 				Expect(extensionFiles).NotTo(ContainElement(gstruct.MatchFields(gstruct.IgnoreExtras, gstruct.Fields{
 					"Path": Equal("/etc/ntp.conf"),
 				})))
+				Expect(extensionFiles).NotTo(ContainElement(gstruct.MatchFields(gstruct.IgnoreExtras, gstruct.Fields{
+					"Path": Equal("/etc/ntpsec/ntp.conf"),
+				})))
+			})
+			It("should enable ntpsec service and write /etc/ntpsec/ntp.conf", func() {
+				extensionConfig := Config{
+					ExtensionConfig: &v1alpha1.ExtensionConfig{
+						NTP: &v1alpha1.NTPConfig{
+							Daemon: v1alpha1.NTPsec,
+							NTPsec: &v1alpha1.NTPsecConfig{
+								Servers:    []string{"foo.bar", "bar.foo"},
+								Interfaces: []string{"dev1", "dev2"},
+							},
+						},
+					},
+				}
+				actuator = NewActuator(mgr, extensionConfig)
+				userData, extensionUnits, extensionFiles, _, err := actuator.Reconcile(ctx, log, osc)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(userData).To(BeEmpty())
+				Expect(extensionUnits).To(ContainElement(gstruct.MatchFields(gstruct.IgnoreExtras, gstruct.Fields{
+					"Name":    Equal("install-ntp-client.service"),
+					"Content": gstruct.PointTo(ContainSubstring("ExecStart=/bin/bash /opt/gardener/bin/install-ntp.sh ntpsec\n")),
+				})))
+				Expect(extensionFiles).To(ContainElement(extensionsv1alpha1.File{
+					Path:        filepath.Join(string(filepath.Separator), "etc", "ntpsec", "ntp.conf"),
+					Permissions: ptr.To[uint32](0644),
+					Content: extensionsv1alpha1.FileContent{
+						Inline: &extensionsv1alpha1.FileContentInline{
+							Data: `
+server foo.bar iburst
+server bar.foo iburst
+
+driftfile /var/lib/ntpsec/ntp.drift
+restrict default kod nomodify noquery limited
+restrict 127.0.0.1
+restrict ::1
+
+interface ignore wildcard
+interface listen 127.0.0.1
+interface listen dev1
+interface listen dev2
+`,
+						},
+					},
+				}))
+				Expect(extensionFiles).NotTo(ContainElement(gstruct.MatchFields(gstruct.IgnoreExtras, gstruct.Fields{
+					"Path": Equal("/etc/ntp.conf"),
+				})))
+			})
+			It("should write both ntp.conf and /etc/ntpsec/ntp.conf when ntpd is daemon and ntpsec is in Ubuntu version overrides", func() {
+				extensionConfig := Config{
+					ExtensionConfig: &v1alpha1.ExtensionConfig{
+						NTP: &v1alpha1.NTPConfig{
+							Daemon: v1alpha1.NTPD,
+							NTPD:   &v1alpha1.NTPDConfig{Servers: []string{"127.0.0.1"}},
+							NTPsec: &v1alpha1.NTPsecConfig{Servers: []string{"127.0.0.1"}},
+							UbuntuVersionOverrides: []v1alpha1.NTPUbuntuVersionOverride{
+								{UbuntuVersion: "24.04", Daemon: v1alpha1.NTPsec},
+								{UbuntuVersion: "26.04", Daemon: v1alpha1.None},
+							},
+						},
+					},
+				}
+				actuator = NewActuator(mgr, extensionConfig)
+				_, extensionUnits, extensionFiles, _, err := actuator.Reconcile(ctx, log, osc)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(extensionUnits).To(ContainElement(gstruct.MatchFields(gstruct.IgnoreExtras, gstruct.Fields{
+					"Name":    Equal("install-ntp-client.service"),
+					"Content": gstruct.PointTo(ContainSubstring("ExecStart=/bin/bash /opt/gardener/bin/install-ntp.sh ntpd 24.04=ntpsec 26.04=none\n")),
+				})))
+				Expect(extensionFiles).To(ContainElement(gstruct.MatchFields(gstruct.IgnoreExtras, gstruct.Fields{
+					"Path": Equal("/etc/ntp.conf"),
+				})))
+				Expect(extensionFiles).To(ContainElement(gstruct.MatchFields(gstruct.IgnoreExtras, gstruct.Fields{
+					"Path": Equal("/etc/ntpsec/ntp.conf"),
+				})))
+			})
+			It("should write /etc/ntpsec/ntp.conf if ntpsec is only selected in an Ubuntu version override", func() {
+				extensionConfig := Config{
+					ExtensionConfig: &v1alpha1.ExtensionConfig{
+						NTP: &v1alpha1.NTPConfig{
+							Daemon: v1alpha1.None,
+							NTPsec: &v1alpha1.NTPsecConfig{Servers: []string{"127.0.0.1"}},
+							UbuntuVersionOverrides: []v1alpha1.NTPUbuntuVersionOverride{
+								{UbuntuVersion: "24.04", Daemon: v1alpha1.NTPsec},
+							},
+						},
+					},
+				}
+				actuator = NewActuator(mgr, extensionConfig)
+				_, extensionUnits, extensionFiles, _, err := actuator.Reconcile(ctx, log, osc)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(extensionUnits).To(ContainElement(gstruct.MatchFields(gstruct.IgnoreExtras, gstruct.Fields{
+					"Name":    Equal("install-ntp-client.service"),
+					"Content": gstruct.PointTo(ContainSubstring("ExecStart=/bin/bash /opt/gardener/bin/install-ntp.sh none 24.04=ntpsec\n")),
+				})))
+				Expect(extensionFiles).To(ContainElement(gstruct.MatchFields(gstruct.IgnoreExtras, gstruct.Fields{
+					"Path": Equal("/etc/ntpsec/ntp.conf"),
+				})))
+				Expect(extensionFiles).NotTo(ContainElement(gstruct.MatchFields(gstruct.IgnoreExtras, gstruct.Fields{
+					"Path": Equal("/etc/ntp.conf"),
+				})))
+			})
+			It("should return an error if ntpsec daemon is configured without ntpsec config", func() {
+				extensionConfig := Config{
+					ExtensionConfig: &v1alpha1.ExtensionConfig{
+						NTP: &v1alpha1.NTPConfig{
+							Daemon: v1alpha1.NTPsec,
+						},
+					},
+				}
+				actuator = NewActuator(mgr, extensionConfig)
+				_, _, _, _, err := actuator.Reconcile(ctx, log, osc)
+				Expect(err).To(MatchError(ContainSubstring("ntpsec configuration is required")))
+			})
+			It("should install ntpsec before removing legacy ntp in install-ntp.sh", func() {
+				installIdx := strings.Index(ntpInstallScript, `apt-get install -y -o Dpkg::Options::="--force-confold" ntpsec`)
+				removeIdx := strings.Index(ntpInstallScript, "apt-get remove -y ntp")
+				Expect(installIdx).To(BeNumerically(">", 0))
+				Expect(removeIdx).To(BeNumerically(">", installIdx))
 			})
 		})
 	})

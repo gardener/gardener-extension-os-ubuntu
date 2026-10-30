@@ -65,6 +65,42 @@ var _ = Describe("ExtensionConfig validation", func() {
 		Expect(errs[0].Field).To(Equal("ntpd"))
 	})
 
+	It("should succeed with valid NTPsec config", func() {
+		config.NTP.Daemon = configv1alpha1.NTPsec
+		config.NTP.NTPsec = &configv1alpha1.NTPsecConfig{
+			Servers:    []string{"ntp.ubuntu.com"},
+			Interfaces: []string{"enp1s0"},
+		}
+		errs := ValidateExtensionConfig(config)
+		Expect(errs).To(BeEmpty())
+	})
+
+	It("should fail when daemon is ntpsec and ntpsec config is missing", func() {
+		config.NTP.Daemon = configv1alpha1.NTPsec
+		errs := ValidateExtensionConfig(config)
+		Expect(errs).To(HaveLen(1))
+		Expect(errs[0].Type).To(Equal(field.ErrorTypeRequired))
+		Expect(errs[0].Field).To(Equal("ntpsec"))
+	})
+
+	It("should fail with invalid NTPsec config (no ntp servers provided)", func() {
+		config.NTP.Daemon = configv1alpha1.NTPsec
+		config.NTP.NTPsec = &configv1alpha1.NTPsecConfig{Servers: []string{}}
+		errs := ValidateExtensionConfig(config)
+		Expect(errs).To(HaveLen(1))
+		Expect(errs[0].Type).To(Equal(field.ErrorTypeRequired))
+		Expect(errs[0].Field).To(Equal("ntpsec.servers"))
+	})
+
+	It("should fail with daemon systemd-timesyncd and ntpsec config set", func() {
+		config.NTP.Daemon = configv1alpha1.SystemdTimesyncd
+		config.NTP.NTPsec = &configv1alpha1.NTPsecConfig{Servers: []string{"foo.bar"}}
+		errs := ValidateExtensionConfig(config)
+		Expect(errs).To(HaveLen(1))
+		Expect(errs[0].Type).To(Equal(field.ErrorTypeForbidden))
+		Expect(errs[0].Field).To(Equal("ntpsec"))
+	})
+
 	It("should succeed with a valid architecture, URI and search for primary apt mirror", func() {
 		config.APTConfig = &configv1alpha1.APTConfig{Primary: []configv1alpha1.APTArchive{{
 			Arches:    []configv1alpha1.Architecture{configv1alpha1.ARM64},
@@ -108,6 +144,38 @@ var _ = Describe("ExtensionConfig validation", func() {
 			Expect(errs).To(ConsistOf(PointTo(MatchFields(IgnoreExtras, Fields{
 				"Type":  Equal(field.ErrorTypeForbidden),
 				"Field": Equal("ntpd"),
+			}))))
+		})
+		It("should allow ntpsec config if ntpsec is only selected in an override", func() {
+			config.NTP.Daemon = configv1alpha1.NTPD
+			config.NTP.NTPD = &configv1alpha1.NTPDConfig{Servers: []string{"ntp.ubuntu.com"}}
+			config.NTP.NTPsec = &configv1alpha1.NTPsecConfig{Servers: []string{"ntp.ubuntu.com"}}
+			config.NTP.UbuntuVersionOverrides = []configv1alpha1.NTPUbuntuVersionOverride{
+				{UbuntuVersion: "24.04", Daemon: configv1alpha1.NTPsec},
+			}
+			Expect(ValidateExtensionConfig(config)).To(BeEmpty())
+		})
+		It("should forbid ntpsec config if ntpsec is selected nowhere", func() {
+			config.NTP.Daemon = configv1alpha1.SystemdTimesyncd
+			config.NTP.NTPsec = &configv1alpha1.NTPsecConfig{Servers: []string{"ntp.ubuntu.com"}}
+			config.NTP.UbuntuVersionOverrides = []configv1alpha1.NTPUbuntuVersionOverride{
+				{UbuntuVersion: "26.04", Daemon: configv1alpha1.None},
+			}
+			errs := ValidateExtensionConfig(config)
+			Expect(errs).To(ConsistOf(PointTo(MatchFields(IgnoreExtras, Fields{
+				"Type":  Equal(field.ErrorTypeForbidden),
+				"Field": Equal("ntpsec"),
+			}))))
+		})
+		It("should require ntpsec config if ntpsec is selected in an override", func() {
+			config.NTP.Daemon = configv1alpha1.SystemdTimesyncd
+			config.NTP.UbuntuVersionOverrides = []configv1alpha1.NTPUbuntuVersionOverride{
+				{UbuntuVersion: "24.04", Daemon: configv1alpha1.NTPsec},
+			}
+			errs := ValidateExtensionConfig(config)
+			Expect(errs).To(ConsistOf(PointTo(MatchFields(IgnoreExtras, Fields{
+				"Type":  Equal(field.ErrorTypeRequired),
+				"Field": Equal("ntpsec"),
 			}))))
 		})
 		It("should reject invalid overrides", func() {
