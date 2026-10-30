@@ -42,6 +42,25 @@ install_ntp() {
   log_info "ntp installed successfully!"
 }
 
+install_ntpsec() {
+  log_info "Installing ntpsec client..."
+  if package_installed ntpsec && ! package_installed ntp; then
+    log_info "Package 'ntpsec' is already installed!"
+    return 0
+  fi
+
+  require_root
+  log_info "Updating package cache and installing ntpsec..."
+  apt-get update -qq
+  apt-get install -y -o Dpkg::Options::="--force-confold" ntpsec
+  if package_installed ntp; then
+    log_info "Removing legacy ntp package..."
+    apt-get remove -y ntp
+  fi
+  systemctl restart ntpsec
+  log_info "ntpsec installed successfully!"
+}
+
 install_systemd_timesyncd() {
   log_info "Installing systemd-timesyncd client..."
   if package_installed systemd-timesyncd; then
@@ -82,6 +101,7 @@ Usage: $0 <option> [<ubuntu-version>=<option>...]
 
 Options:
   ntpd               Install ntp
+  ntpsec             Install ntpsec
   systemd-timesyncd  Install systemd-timesyncd
   none               Do not manage the NTP client, keep default
 EOF
@@ -100,6 +120,9 @@ main() {
     ntpd)
       install_ntp
       ;;
+    ntpsec)
+      install_ntpsec
+      ;;
     systemd-timesyncd)
       install_systemd_timesyncd
       ;;
@@ -108,7 +131,7 @@ main() {
       ;;
     *)
       log_err "Invalid option: '${daemon}'"
-      log_err "Please use 'ntpd', 'systemd-timesyncd', or 'none'."
+      log_err "Please use 'ntpd', 'ntpsec', 'systemd-timesyncd', or 'none'."
       exit 1
       ;;
   esac
