@@ -470,7 +470,7 @@ WantedBy=multi-user.target
 				)
 				Expect(extensionFiles).To(ContainElement(extensionsv1alpha1.File{
 					Path:        "/opt/gardener/bin/configure_kubelet_resolv_conf.sh",
-					Permissions: ptr.To[uint32](0755),
+					Permissions: ptr.To[int32](0755),
 					Content: extensionsv1alpha1.FileContent{Inline: &extensionsv1alpha1.FileContentInline{Data: `#!/bin/bash
 if grep -q 'resolvConf: /etc/resolv.conf' /var/lib/kubelet/config/kubelet; then
   sed -i -e 's|resolvConf: /etc/resolv.conf|resolvConf: /run/systemd/resolve/resolv.conf|g' /var/lib/kubelet/config/kubelet;
@@ -480,7 +480,7 @@ fi
 				Expect(extensionFiles).To(ContainElement(extensionsv1alpha1.File{
 					Path:        "/opt/gardener/bin/install-ntp.sh",
 					Content:     extensionsv1alpha1.FileContent{Inline: &extensionsv1alpha1.FileContentInline{Data: ntpInstallScript}},
-					Permissions: ptr.To[uint32](0744),
+					Permissions: ptr.To[int32](0744),
 				}))
 			})
 			It("should enable ntpd service", func() {
@@ -504,7 +504,7 @@ fi
 				})))
 				Expect(extensionFiles).To(ContainElement(extensionsv1alpha1.File{
 					Path:        filepath.Join(string(filepath.Separator), "etc", "ntp.conf"),
-					Permissions: ptr.To[uint32](0644),
+					Permissions: ptr.To[int32](0644),
 					Content: extensionsv1alpha1.FileContent{
 						Inline: &extensionsv1alpha1.FileContentInline{
 							Data: `
@@ -543,7 +543,7 @@ interface listen dev2
 				Expect(extensionFiles).To(ContainElement(extensionsv1alpha1.File{
 					Path:        "/opt/gardener/bin/install-ntp.sh",
 					Content:     extensionsv1alpha1.FileContent{Inline: &extensionsv1alpha1.FileContentInline{Data: ntpInstallScript}},
-					Permissions: ptr.To[uint32](0744),
+					Permissions: ptr.To[int32](0744),
 				}))
 
 				Expect(extensionUnits).To(ConsistOf(
