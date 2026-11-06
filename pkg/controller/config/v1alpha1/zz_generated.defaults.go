@@ -28,5 +28,8 @@ func SetObjectDefaults_ExtensionConfig(in *ExtensionConfig) {
 		if in.NTP.NTPD != nil {
 			SetDefaults_NTPDConfig(in.NTP.NTPD)
 		}
+		if in.NTP.NTPsec != nil {
+			SetDefaults_NTPsecConfig(in.NTP.NTPsec)
+		}
 	}
 }

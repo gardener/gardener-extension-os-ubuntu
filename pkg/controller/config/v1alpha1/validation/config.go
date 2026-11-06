@@ -23,7 +23,7 @@ var (
 	validUbuntuVersion     = regexp.MustCompile(`^[0-9]+\.[0-9]+$`)
 	validBuildSerial       = regexp.MustCompile(`^[0-9.]+$`)
 	validAptRepositoryName = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9._-]*$`)
-	validDaemonNames       = sets.New(configv1alpha1.SystemdTimesyncd, configv1alpha1.NTPD, configv1alpha1.None)
+	validDaemonNames       = sets.New(configv1alpha1.SystemdTimesyncd, configv1alpha1.NTPD, configv1alpha1.NTPsec, configv1alpha1.None)
 )
 
 func ValidateExtensionConfig(config *configv1alpha1.ExtensionConfig) field.ErrorList {
@@ -45,6 +45,18 @@ func ValidateExtensionConfig(config *configv1alpha1.ExtensionConfig) field.Error
 
 		if config.NTP.NTPD != nil {
 			allErrs = append(allErrs, validateNTPDConfig(config.NTP.NTPD, rootPath.Child("ntpd"))...)
+		}
+
+		if helper.IsDaemonConfigured(config.NTP, configv1alpha1.NTPsec) && config.NTP.NTPsec == nil {
+			allErrs = append(allErrs, field.Required(rootPath.Child("ntpsec"), "NTPsec config is required if ntpsec is selected as daemon or in an Ubuntu version override"))
+		}
+
+		if config.NTP.NTPsec != nil && !helper.IsDaemonConfigured(config.NTP, configv1alpha1.NTPsec) {
+			allErrs = append(allErrs, field.Forbidden(rootPath.Child("ntpsec"), "NTPsec config is only allowed if ntpsec is selected as daemon or in an Ubuntu version override"))
+		}
+
+		if config.NTP.NTPsec != nil {
+			allErrs = append(allErrs, validateNTPsecConfig(config.NTP.NTPsec, rootPath.Child("ntpsec"))...)
 		}
 	}
 
@@ -148,6 +160,14 @@ func validateDependencies(config []configv1alpha1.DependencyConfig, fldPath *fie
 }
 
 func validateNTPDConfig(config *configv1alpha1.NTPDConfig, fldPath *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
+	if len(config.Servers) == 0 {
+		allErrs = append(allErrs, field.Required(fldPath.Child("servers"), "a list of NTP servers is required"))
+	}
+	return allErrs
+}
+
+func validateNTPsecConfig(config *configv1alpha1.NTPsecConfig, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 	if len(config.Servers) == 0 {
 		allErrs = append(allErrs, field.Required(fldPath.Child("servers"), "a list of NTP servers is required"))

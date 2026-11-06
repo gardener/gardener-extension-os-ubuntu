@@ -30,10 +30,16 @@ import (
 //go:embed templates/ntp-config.conf.tpl
 var ntpConfigTemplateContent string
 
+//go:embed templates/ntpsec-config.conf.tpl
+var ntpsecConfigTemplateContent string
+
 //go:embed scripts/installNTP.sh
 var ntpInstallScript string
 
-var ntpConfigTemplate *template.Template
+var (
+	ntpConfigTemplate    *template.Template
+	ntpsecConfigTemplate *template.Template
+)
 
 //go:embed templates/install-dependencies.sh.tpl
 var installDependenciesTemplateContent string
@@ -71,6 +77,11 @@ func init() {
 	ntpConfigTemplate, err = template.New("ntp-config").Funcs(sprig.TxtFuncMap()).Parse(ntpConfigTemplateContent)
 	if err != nil {
 		panic(fmt.Errorf("failed to parse NTP config template: %w", err))
+	}
+
+	ntpsecConfigTemplate, err = template.New("ntpsec-config").Funcs(sprig.TxtFuncMap()).Parse(ntpsecConfigTemplateContent)
+	if err != nil {
+		panic(fmt.Errorf("failed to parse NTPsec config template: %w", err))
 	}
 
 	installDependenciesTemplate, err = template.New("install-deps").Parse(installDependenciesTemplateContent)
@@ -286,6 +297,21 @@ func (a *actuator) generateNTPConfig() (string, error) {
 	return templateOutput.String(), nil
 }
 
+func (a *actuator) generateNTPsecConfig() (string, error) {
+	if a.extensionConfig.NTP.NTPsec == nil {
+		return "", fmt.Errorf("ntpsec configuration is required when ntpsec daemon is configured")
+	}
+	templateData := a.extensionConfig.NTP.NTPsec
+	var templateOutput strings.Builder
+
+	err := ntpsecConfigTemplate.Execute(&templateOutput, templateData)
+	if err != nil {
+		return "", fmt.Errorf("error executing template: %v", err)
+	}
+
+	return templateOutput.String(), nil
+}
+
 func (a *actuator) handleReconcileOSC(_ *extensionsv1alpha1.OperatingSystemConfig) ([]extensionsv1alpha1.Unit, []extensionsv1alpha1.File, error) {
 	var (
 		extensionUnits []extensionsv1alpha1.Unit
@@ -427,6 +453,18 @@ func (a *actuator) configureNTPDaemon(extensionUnits []extensionsv1alpha1.Unit, 
 			Path:        filepath.Join(string(filepath.Separator), "etc", "ntp.conf"),
 			Content:     extensionsv1alpha1.FileContent{Inline: &extensionsv1alpha1.FileContentInline{Data: templateData}},
 			Permissions: ptr.To[int32](0644),
+		})
+	}
+
+	if helper.IsDaemonConfigured(ntpConfig, configv1alpha1.NTPsec) {
+		templateData, err := a.generateNTPsecConfig()
+		if err != nil {
+			return nil, nil, fmt.Errorf("error generating NTPsec config: %v", err)
+		}
+		extensionFiles = append(extensionFiles, extensionsv1alpha1.File{
+			Path:        filepath.Join(string(filepath.Separator), "etc", "ntpsec", "ntp.conf"),
+			Content:     extensionsv1alpha1.FileContent{Inline: &extensionsv1alpha1.FileContentInline{Data: templateData}},
+			Permissions: ptr.To[uint32](0644),
 		})
 	}
 
