@@ -301,7 +301,7 @@ func (a *actuator) handleReconcileOSC(_ *extensionsv1alpha1.OperatingSystemConfi
 	filePathKubeletConfigureResolvConfScript := filepath.Join("/", "opt", "gardener", "bin", "configure_kubelet_resolv_conf.sh")
 	extensionFiles = append(extensionFiles, extensionsv1alpha1.File{
 		Path:        filePathKubeletConfigureResolvConfScript,
-		Permissions: ptr.To[uint32](0755),
+		Permissions: ptr.To[int32](0755),
 		Content: extensionsv1alpha1.FileContent{Inline: &extensionsv1alpha1.FileContentInline{Data: `#!/bin/bash
 if grep -q 'resolvConf: /etc/resolv.conf' /var/lib/kubelet/config/kubelet; then
   sed -i -e 's|resolvConf: /etc/resolv.conf|resolvConf: /run/systemd/resolve/resolv.conf|g' /var/lib/kubelet/config/kubelet;
@@ -409,7 +409,7 @@ func (a *actuator) configureNTPDaemon(extensionUnits []extensionsv1alpha1.Unit, 
 	extensionFiles = append(extensionFiles, extensionsv1alpha1.File{
 		Path:        filePathNTPScript,
 		Content:     extensionsv1alpha1.FileContent{Inline: &extensionsv1alpha1.FileContentInline{Data: ntpInstallScript}},
-		Permissions: ptr.To[uint32](0744),
+		Permissions: ptr.To[int32](0744),
 	})
 
 	ntpConfig := a.extensionConfig.NTP
@@ -426,7 +426,7 @@ func (a *actuator) configureNTPDaemon(extensionUnits []extensionsv1alpha1.Unit, 
 		extensionFiles = append(extensionFiles, extensionsv1alpha1.File{
 			Path:        filepath.Join(string(filepath.Separator), "etc", "ntp.conf"),
 			Content:     extensionsv1alpha1.FileContent{Inline: &extensionsv1alpha1.FileContentInline{Data: templateData}},
-			Permissions: ptr.To[uint32](0644),
+			Permissions: ptr.To[int32](0644),
 		})
 	}
 
