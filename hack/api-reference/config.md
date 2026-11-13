@@ -387,7 +387,7 @@ ExtensionConfig is the configuration for the os-ubuntu extension.
 </td>
 <td>
 <em>(Optional)</em>
-<p>NTP to configure either systemd-timesyncd or ntpd</p>
+<p>NTP to configure either systemd-timesyncd, ntpd or ntpsec</p>
 </td>
 </tr>
 <tr>
@@ -468,7 +468,7 @@ content.
 </p>
 
 <p>
-NTPConfig General NTP Config for either systemd-timesyncd or ntpd
+NTPConfig General NTP Config for either systemd-timesyncd, ntpd or ntpsec
 </p>
 
 <table>
@@ -488,7 +488,7 @@ NTPConfig General NTP Config for either systemd-timesyncd or ntpd
 </em>
 </td>
 <td>
-<p>Daemon One of either systemd-timesyncd, ntp or none.</p>
+<p>Daemon One of either systemd-timesyncd, ntp, ntpsec or none.</p>
 </td>
 </tr>
 <tr>
@@ -501,6 +501,18 @@ NTPConfig General NTP Config for either systemd-timesyncd or ntpd
 <td>
 <em>(Optional)</em>
 <p>NTPD to configure the ntpd client</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>ntpsec</code></br>
+<em>
+<a href="#ntpsecconfig">NTPsecConfig</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>NTPsec to configure the ntpsec client</p>
 </td>
 </tr>
 <tr>
@@ -608,7 +620,55 @@ string
 </em>
 </td>
 <td>
-<p>Daemon One of either systemd-timesyncd, ntp or none.</p>
+<p>Daemon One of either systemd-timesyncd, ntp, ntpsec or none.</p>
+</td>
+</tr>
+
+</tbody>
+</table>
+
+
+<h3 id="ntpsecconfig">NTPsecConfig
+</h3>
+
+
+<p>
+(<em>Appears on:</em><a href="#ntpconfig">NTPConfig</a>)
+</p>
+
+<p>
+NTPsecConfig is the struct used in the ntpsec-config.conf.tpl template file
+</p>
+
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+
+<tr>
+<td>
+<code>servers</code></br>
+<em>
+string array
+</em>
+</td>
+<td>
+<p>Servers List of ntp servers</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>interfaces</code></br>
+<em>
+string array
+</em>
+</td>
+<td>
+<p>Interfaces for ntpsec to bind to. Can be more than one.</p>
 </td>
 </tr>
 
