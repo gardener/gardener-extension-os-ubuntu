@@ -770,10 +770,47 @@ interface listen dev2
 				Expect(err).To(MatchError(ContainSubstring("ntpsec configuration is required")))
 			})
 			It("should install ntpsec before removing legacy ntp in install-ntp.sh", func() {
-				installIdx := strings.Index(ntpInstallScript, `apt-get install -y -o Dpkg::Options::="--force-confold" ntpsec`)
-				removeIdx := strings.Index(ntpInstallScript, "apt-get remove -y ntp")
-				Expect(installIdx).To(BeNumerically(">", 0))
-				Expect(removeIdx).To(BeNumerically(">", installIdx))
+				Expect(ntpInstallScript).To(
+					MatchRegexp(`(?s)apt-get install -y -o Dpkg::Options::="--force-confold" ntpsec.*apt-get remove -y ntp`),
+					"expected ntpsec to be installed before legacy ntp is removed",
+				)
+			})
+			It("should explicitly disable legacy ntp service before installing ntpsec in install-ntp.sh", func() {
+				Expect(ntpInstallScript).To(
+					MatchRegexp(`(?s)systemctl disable --now ntp\.service.*apt-get install -y -o Dpkg::Options::="--force-confold" ntpsec`),
+					"expected legacy ntp.service to be stopped and disabled before ntpsec is installed",
+				)
+			})
+			It("should remove /etc/ntp.conf when installing ntpsec in install-ntp.sh", func() {
+				Expect(ntpInstallScript).To(ContainSubstring("rm -f /etc/ntp.conf"))
+			})
+			It("should remove /etc/ntpsec/ntp.conf when installing legacy ntp in install-ntp.sh", func() {
+				Expect(ntpInstallScript).To(ContainSubstring("rm -f /etc/ntpsec/ntp.conf"))
+			})
+			It("should configure ntpsec with overrides across 22.04, 24.04, and 26.04", func() {
+				extensionConfig := Config{
+					ExtensionConfig: &v1alpha1.ExtensionConfig{
+						NTP: &v1alpha1.NTPConfig{
+							Daemon: v1alpha1.SystemdTimesyncd,
+							NTPsec: &v1alpha1.NTPsecConfig{Servers: []string{"127.0.0.1"}},
+							UbuntuVersionOverrides: []v1alpha1.NTPUbuntuVersionOverride{
+								{UbuntuVersion: "22.04", Daemon: v1alpha1.NTPsec},
+								{UbuntuVersion: "24.04", Daemon: v1alpha1.NTPsec},
+								{UbuntuVersion: "26.04", Daemon: v1alpha1.NTPsec},
+							},
+						},
+					},
+				}
+				actuator = NewActuator(mgr, extensionConfig)
+				_, extensionUnits, extensionFiles, _, err := actuator.Reconcile(ctx, log, osc)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(extensionUnits).To(ContainElement(gstruct.MatchFields(gstruct.IgnoreExtras, gstruct.Fields{
+					"Name":    Equal("install-ntp-client.service"),
+					"Content": gstruct.PointTo(ContainSubstring("ExecStart=/bin/bash /opt/gardener/bin/install-ntp.sh systemd-timesyncd 22.04=ntpsec 24.04=ntpsec 26.04=ntpsec\n")),
+				})))
+				Expect(extensionFiles).To(ContainElement(gstruct.MatchFields(gstruct.IgnoreExtras, gstruct.Fields{
+					"Path": Equal("/etc/ntpsec/ntp.conf"),
+				})))
 			})
 		})
 	})
