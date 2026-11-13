@@ -155,6 +155,16 @@ var _ = Describe("ExtensionConfig validation", func() {
 			}
 			Expect(ValidateExtensionConfig(config)).To(BeEmpty())
 		})
+		It("should allow ntpsec override for 22.04, 24.04, and 26.04", func() {
+			config.NTP.Daemon = configv1alpha1.SystemdTimesyncd
+			config.NTP.NTPsec = &configv1alpha1.NTPsecConfig{Servers: []string{"ntp.ubuntu.com"}}
+			config.NTP.UbuntuVersionOverrides = []configv1alpha1.NTPUbuntuVersionOverride{
+				{UbuntuVersion: "22.04", Daemon: configv1alpha1.NTPsec},
+				{UbuntuVersion: "24.04", Daemon: configv1alpha1.NTPsec},
+				{UbuntuVersion: "26.04", Daemon: configv1alpha1.NTPsec},
+			}
+			Expect(ValidateExtensionConfig(config)).To(BeEmpty())
+		})
 		It("should forbid ntpsec config if ntpsec is selected nowhere", func() {
 			config.NTP.Daemon = configv1alpha1.SystemdTimesyncd
 			config.NTP.NTPsec = &configv1alpha1.NTPsecConfig{Servers: []string{"ntp.ubuntu.com"}}
