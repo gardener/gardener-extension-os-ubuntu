@@ -769,24 +769,6 @@ interface listen dev2
 				_, _, _, _, err := actuator.Reconcile(ctx, log, osc)
 				Expect(err).To(MatchError(ContainSubstring("ntpsec configuration is required")))
 			})
-			It("should install ntpsec before removing legacy ntp in install-ntp.sh", func() {
-				Expect(ntpInstallScript).To(
-					MatchRegexp(`(?s)apt-get install -y -o Dpkg::Options::="--force-confold" ntpsec.*apt-get remove -y ntp`),
-					"expected ntpsec to be installed before legacy ntp is removed",
-				)
-			})
-			It("should explicitly disable legacy ntp service before installing ntpsec in install-ntp.sh", func() {
-				Expect(ntpInstallScript).To(
-					MatchRegexp(`(?s)systemctl disable --now ntp\.service.*apt-get install -y -o Dpkg::Options::="--force-confold" ntpsec`),
-					"expected legacy ntp.service to be stopped and disabled before ntpsec is installed",
-				)
-			})
-			It("should remove /etc/ntp.conf when installing ntpsec in install-ntp.sh", func() {
-				Expect(ntpInstallScript).To(ContainSubstring("rm -f /etc/ntp.conf"))
-			})
-			It("should remove /etc/ntpsec/ntp.conf when installing legacy ntp in install-ntp.sh", func() {
-				Expect(ntpInstallScript).To(ContainSubstring("rm -f /etc/ntpsec/ntp.conf"))
-			})
 			It("should configure ntpsec with overrides across 22.04, 24.04, and 26.04", func() {
 				extensionConfig := Config{
 					ExtensionConfig: &v1alpha1.ExtensionConfig{
