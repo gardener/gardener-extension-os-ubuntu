@@ -112,4 +112,13 @@ var _ = Describe("SetDefaults_ExtensionConfig", func() {
 			))
 		})
 	})
+
+	Context("SetDefaults_NTPsecConfig", func() {
+		It("should initialize nil Servers slice to empty slice", func() {
+			ntpsecConfig := &NTPsecConfig{}
+			SetDefaults_NTPsecConfig(ntpsecConfig)
+			Expect(ntpsecConfig.Servers).NotTo(BeNil())
+			Expect(ntpsecConfig.Servers).To(BeEmpty())
+		})
+	})
 })

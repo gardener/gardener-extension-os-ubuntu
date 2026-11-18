@@ -12,7 +12,12 @@ config: {}
 #    ntpd:
 #      servers:
 #        - ptbtime1.ptb.de
+#    ntpsec:
+#      servers:
+#        - ptbtime1.ptb.de
 #    ubuntuVersionOverrides:
+#      - ubuntuVersion: "24.04"
+#        daemon: ntpsec
 #      - ubuntuVersion: "26.04"
 #        daemon: none
 #  apt:

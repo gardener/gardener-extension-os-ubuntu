@@ -104,17 +104,18 @@ When `false` (the default), Ubuntu's default unattended upgrade behaviour is pre
 
 Configures time synchronisation on the node.
 
-| Field    | Type          | Required | Default             | Description                                                                                                                    |
-| -------- | ------------- | -------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `daemon` | `string`      | yes      | `systemd-timesyncd` | The NTP daemon to use. Must be one of `systemd-timesyncd`, `ntpd` or `none`.                                                   |
-| `ntpd`   | `*NTPDConfig` | no       |                     | Additional configuration. Only allowed when `daemon` is `ntpd`; setting it with `systemd-timesyncd` is rejected by validation. |
+| Field    | Type            | Required | Default             | Description                                                                                                                                                    |
+| -------- | --------------- | -------- | ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `daemon` | `string`        | yes      | `systemd-timesyncd` | The NTP daemon to use. Must be one of `systemd-timesyncd`, `ntpd`, `ntpsec` or `none`.                                                                         |
+| `ntpd`   | `*NTPDConfig`   | no       |                     | Additional configuration. Only allowed when `daemon` (or an override) is `ntpd`; setting it when `ntpd` is not selected is rejected by validation.             |
+| `ntpsec` | `*NTPsecConfig` | no       |                     | Additional configuration. Required and only allowed when `daemon` (or an override) is `ntpsec`; setting it when `ntpsec` is not selected is rejected by validation. |
 
-`NTPDConfig` fields:
+`NTPDConfig` / `NTPsecConfig` fields:
 
 | Field        | Type       | Required | Default | Description                                                    |
 | ------------ | ---------- | -------- | ------- | -------------------------------------------------------------- |
 | `servers`    | `[]string` | yes      |         | List of NTP server addresses. Must contain at least one entry. |
-| `interfaces` | `[]string` | no       |         | List of network interfaces for `ntpd` to bind to.              |
+| `interfaces` | `[]string` | no       |         | List of network interfaces for `ntpd` / `ntpsec` to bind to.   |
 
 Example:
 
@@ -143,7 +144,7 @@ ntp:
 | Field           | Type     | Required | Default | Description                                                                                     |
 | --------------- | -------- | -------- | ------- | ----------------------------------------------------------------------------------------------- |  
 | `UbuntuVersion` | `string` | yes      |         | UbuntuVersion is matched against VERSION_ID from /etc/os-release. Must match ^[0-9]+\.[0-9]+$.  |
-| `Daemon`        | `string` | yes      |         | The NTP daemon to use. Must be one of `systemd-timesyncd`, `ntpd` or `none`.                    |
+| `Daemon`        | `string` | yes      |         | The NTP daemon to use. Must be one of `systemd-timesyncd`, `ntpd`, `ntpsec` or `none`.          |
 
 Example:
 
@@ -157,7 +158,16 @@ ntp:
     interfaces:
       - enp1s0
       - enp2s0
+  ntpsec:
+    servers:
+      - 0.pool.ntp.org
+      - 1.pool.ntp.org
+    interfaces:
+      - enp1s0
+      - enp2s0
   ubuntuVersionOverrides:
+    - ubuntuVersion: "24.04"
+      daemon: ntpsec
     - ubuntuVersion: "26.04"
       daemon: none
 ```

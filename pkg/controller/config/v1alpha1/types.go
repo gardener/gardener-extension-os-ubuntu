@@ -14,6 +14,7 @@ type Daemon string
 const (
 	SystemdTimesyncd Daemon = "systemd-timesyncd"
 	NTPD             Daemon = "ntpd"
+	NTPsec           Daemon = "ntpsec"
 	None             Daemon = "none"
 )
 
@@ -23,7 +24,7 @@ const (
 type ExtensionConfig struct {
 	metav1.TypeMeta `json:",inline"`
 
-	// NTP to configure either systemd-timesyncd or ntpd
+	// NTP to configure either systemd-timesyncd, ntpd or ntpsec
 	// +optional
 	NTP *NTPConfig `json:"ntp,omitempty"`
 	// DisableUnattendedUpgrades to disable unattended upgrades in ubuntu
@@ -112,13 +113,16 @@ type DependencyConfig struct {
 	Hold bool `json:"hold,omitempty"`
 }
 
-// NTPConfig General NTP Config for either systemd-timesyncd or ntpd
+// NTPConfig General NTP Config for either systemd-timesyncd, ntpd or ntpsec
 type NTPConfig struct {
-	// Daemon One of either systemd-timesyncd, ntp or none.
+	// Daemon One of either systemd-timesyncd, ntp, ntpsec or none.
 	Daemon Daemon `json:"daemon"`
 	// NTPD to configure the ntpd client
 	// +optional
 	NTPD *NTPDConfig `json:"ntpd,omitempty"`
+	// NTPsec to configure the ntpsec client
+	// +optional
+	NTPsec *NTPsecConfig `json:"ntpsec,omitempty"`
 	// UbuntuVersionOverrides selects a different daemon for specific Ubuntu
 	// versions. The override is resolved on the node by matching UbuntuVersion
 	// against VERSION_ID from /etc/os-release. If no override matches, Daemon
@@ -131,7 +135,7 @@ type NTPConfig struct {
 type NTPUbuntuVersionOverride struct {
 	// UbuntuVersion is matched against VERSION_ID from /etc/os-release.
 	UbuntuVersion string `json:"ubuntuVersion"`
-	// Daemon One of either systemd-timesyncd, ntp or none.
+	// Daemon One of either systemd-timesyncd, ntp, ntpsec or none.
 	Daemon Daemon `json:"daemon"`
 }
 
@@ -140,6 +144,14 @@ type NTPDConfig struct {
 	// Servers List of ntp servers
 	Servers []string `json:"servers"`
 	// Interfaces for ntpd to bind to. Can be more than one.
+	Interfaces []string `json:"interfaces,omitempty"`
+}
+
+// NTPsecConfig is the struct used in the ntpsec-config.conf.tpl template file
+type NTPsecConfig struct {
+	// Servers List of ntp servers
+	Servers []string `json:"servers"`
+	// Interfaces for ntpsec to bind to. Can be more than one.
 	Interfaces []string `json:"interfaces,omitempty"`
 }
 
