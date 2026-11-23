@@ -45,3 +45,9 @@ func SetDefaults_NTPDConfig(obj *NTPDConfig) {
 		obj.Servers = make([]string, 0)
 	}
 }
+
+func SetDefaults_NTPsecConfig(obj *NTPsecConfig) {
+	if obj.Servers == nil {
+		obj.Servers = make([]string, 0)
+	}
+}

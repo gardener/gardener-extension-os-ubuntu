@@ -30,10 +30,16 @@ import (
 //go:embed templates/ntp-config.conf.tpl
 var ntpConfigTemplateContent string
 
+//go:embed templates/ntpsec-config.conf.tpl
+var ntpsecConfigTemplateContent string
+
 //go:embed scripts/installNTP.sh
 var ntpInstallScript string
 
-var ntpConfigTemplate *template.Template
+var (
+	ntpConfigTemplate    *template.Template
+	ntpsecConfigTemplate *template.Template
+)
 
 //go:embed templates/install-dependencies.sh.tpl
 var installDependenciesTemplateContent string
@@ -71,6 +77,11 @@ func init() {
 	ntpConfigTemplate, err = template.New("ntp-config").Funcs(sprig.TxtFuncMap()).Parse(ntpConfigTemplateContent)
 	if err != nil {
 		panic(fmt.Errorf("failed to parse NTP config template: %w", err))
+	}
+
+	ntpsecConfigTemplate, err = template.New("ntpsec-config").Funcs(sprig.TxtFuncMap()).Parse(ntpsecConfigTemplateContent)
+	if err != nil {
+		panic(fmt.Errorf("failed to parse NTPsec config template: %w", err))
 	}
 
 	installDependenciesTemplate, err = template.New("install-deps").Parse(installDependenciesTemplateContent)
@@ -286,6 +297,21 @@ func (a *actuator) generateNTPConfig() (string, error) {
 	return templateOutput.String(), nil
 }
 
+func (a *actuator) generateNTPsecConfig() (string, error) {
+	if a.extensionConfig.NTP.NTPsec == nil {
+		return "", fmt.Errorf("ntpsec configuration is required when ntpsec daemon is configured")
+	}
+	templateData := a.extensionConfig.NTP.NTPsec
+	var templateOutput strings.Builder
+
+	err := ntpsecConfigTemplate.Execute(&templateOutput, templateData)
+	if err != nil {
+		return "", fmt.Errorf("error executing template: %v", err)
+	}
+
+	return templateOutput.String(), nil
+}
+
 func (a *actuator) handleReconcileOSC(_ *extensionsv1alpha1.OperatingSystemConfig) ([]extensionsv1alpha1.Unit, []extensionsv1alpha1.File, error) {
 	var (
 		extensionUnits []extensionsv1alpha1.Unit
@@ -301,7 +327,7 @@ func (a *actuator) handleReconcileOSC(_ *extensionsv1alpha1.OperatingSystemConfi
 	filePathKubeletConfigureResolvConfScript := filepath.Join("/", "opt", "gardener", "bin", "configure_kubelet_resolv_conf.sh")
 	extensionFiles = append(extensionFiles, extensionsv1alpha1.File{
 		Path:        filePathKubeletConfigureResolvConfScript,
-		Permissions: ptr.To[int32](0755),
+		Permissions: new(int32(0755)),
 		Content: extensionsv1alpha1.FileContent{Inline: &extensionsv1alpha1.FileContentInline{Data: `#!/bin/bash
 if grep -q 'resolvConf: /etc/resolv.conf' /var/lib/kubelet/config/kubelet; then
   sed -i -e 's|resolvConf: /etc/resolv.conf|resolvConf: /run/systemd/resolve/resolv.conf|g' /var/lib/kubelet/config/kubelet;
@@ -409,7 +435,7 @@ func (a *actuator) configureNTPDaemon(extensionUnits []extensionsv1alpha1.Unit, 
 	extensionFiles = append(extensionFiles, extensionsv1alpha1.File{
 		Path:        filePathNTPScript,
 		Content:     extensionsv1alpha1.FileContent{Inline: &extensionsv1alpha1.FileContentInline{Data: ntpInstallScript}},
-		Permissions: ptr.To[int32](0744),
+		Permissions: new(int32(0744)),
 	})
 
 	ntpConfig := a.extensionConfig.NTP
@@ -426,7 +452,19 @@ func (a *actuator) configureNTPDaemon(extensionUnits []extensionsv1alpha1.Unit, 
 		extensionFiles = append(extensionFiles, extensionsv1alpha1.File{
 			Path:        filepath.Join(string(filepath.Separator), "etc", "ntp.conf"),
 			Content:     extensionsv1alpha1.FileContent{Inline: &extensionsv1alpha1.FileContentInline{Data: templateData}},
-			Permissions: ptr.To[int32](0644),
+			Permissions: new(int32(0644)),
+		})
+	}
+
+	if helper.IsDaemonConfigured(ntpConfig, configv1alpha1.NTPsec) {
+		templateData, err := a.generateNTPsecConfig()
+		if err != nil {
+			return nil, nil, fmt.Errorf("error generating NTPsec config: %v", err)
+		}
+		extensionFiles = append(extensionFiles, extensionsv1alpha1.File{
+			Path:        filepath.Join(string(filepath.Separator), "etc", "ntpsec", "ntp.conf"),
+			Content:     extensionsv1alpha1.FileContent{Inline: &extensionsv1alpha1.FileContentInline{Data: templateData}},
+			Permissions: new(int32(0644)),
 		})
 	}
 
