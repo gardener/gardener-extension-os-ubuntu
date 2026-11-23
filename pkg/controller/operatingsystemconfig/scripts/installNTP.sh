@@ -32,18 +32,12 @@ install_ntp() {
   log_info "Installing ntpd client..."
   require_root
 
-  # Stop and disable conflicting services
-  systemctl disable --now ntpsec.service 2>/dev/null || true
-  systemctl disable --now systemd-timesyncd.service 2>/dev/null || true
-
   # Remove ntpsec config to avoid conflicting or stale configuration
   rm -f /etc/ntpsec/ntp.conf
   rmdir /etc/ntpsec 2>/dev/null || true
 
   if package_installed ntp && ! package_installed ntpsec; then
     log_info "Package 'ntp' is already installed!"
-    systemctl enable ntpd 2>/dev/null || true
-    systemctl restart ntpd 2>/dev/null || true
     return 0
   fi
 
@@ -54,8 +48,6 @@ install_ntp() {
     log_info "Removing ntpsec package..."
     apt-get purge -y ntpsec 2>/dev/null || apt-get remove -y ntpsec || true
   fi
-  systemctl enable ntpd 2>/dev/null || true
-  systemctl restart ntpd 2>/dev/null || true
   log_info "ntp installed successfully!"
 }
 
@@ -63,17 +55,11 @@ install_ntpsec() {
   log_info "Installing ntpsec client..."
   require_root
 
-  # Explicitly stop and disable conflicting services to prevent port 123 conflicts
-  systemctl disable --now ntpd.service 2>/dev/null || true
-  systemctl disable --now systemd-timesyncd.service 2>/dev/null || true
-
   # Remove legacy ntp config file to prevent syntax errors and config conflict
   rm -f /etc/ntp.conf
 
   if package_installed ntpsec && ! package_installed ntp; then
     log_info "Package 'ntpsec' is already installed!"
-    systemctl enable ntpsec 2>/dev/null || true
-    systemctl restart ntpsec
     return 0
   fi
 
@@ -84,8 +70,6 @@ install_ntpsec() {
     log_info "Removing legacy ntp package..."
     apt-get purge -y ntp 2>/dev/null || apt-get remove -y ntp
   fi
-  systemctl enable ntpsec 2>/dev/null || true
-  systemctl restart ntpsec
   log_info "ntpsec installed successfully!"
 }
 
@@ -93,26 +77,18 @@ install_systemd_timesyncd() {
   log_info "Installing systemd-timesyncd client..."
   require_root
 
-  # Stop and disable ntp and ntpsec daemons to prevent conflicts
-  systemctl disable --now ntpd.service 2>/dev/null || true
-  systemctl disable --now ntpsec.service 2>/dev/null || true
-
   rm -f /etc/ntp.conf
   rm -f /etc/ntpsec/ntp.conf
   rmdir /etc/ntpsec 2>/dev/null || true
 
   if package_installed systemd-timesyncd; then
     log_info "Package 'systemd-timesyncd' is already installed!"
-    systemctl enable systemd-timesyncd 2>/dev/null || true
-    systemctl restart systemd-timesyncd
     return 0
   fi
 
   log_info "Updating package cache and installing systemd-timesyncd..."
   apt-get update -qq
   apt-get install -y systemd-timesyncd
-  systemctl enable systemd-timesyncd 2>/dev/null || true
-  systemctl restart systemd-timesyncd
   log_info "systemd-timesyncd installed successfully!"
 }
 
