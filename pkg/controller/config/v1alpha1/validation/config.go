@@ -23,6 +23,10 @@ var (
 	validUbuntuVersion     = regexp.MustCompile(`^[0-9]+\.[0-9]+$`)
 	validBuildSerial       = regexp.MustCompile(`^[0-9.]+$`)
 	validAptRepositoryName = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9._-]*$`)
+	validAptSuite          = regexp.MustCompile(`^[a-zA-Z0-9$][a-zA-Z0-9$._/-]*$`)
+	validAptComponent      = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9._/-]*$`)
+	validNTPInterface      = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9.:_-]*$`)
+	validNTPServer         = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9.:_-]*$`)
 	validDaemonNames       = sets.New(configv1alpha1.SystemdTimesyncd, configv1alpha1.NTPD, configv1alpha1.NTPsec, configv1alpha1.None)
 )
 
@@ -41,6 +45,10 @@ func ValidateExtensionConfig(config *configv1alpha1.ExtensionConfig) field.Error
 		// Check if user configured systemd-timesyncd daemon with ntpd config
 		if config.NTP.NTPD != nil && !helper.IsDaemonConfigured(config.NTP, configv1alpha1.NTPD) {
 			allErrs = append(allErrs, field.Forbidden(rootPath.Child("ntpd"), "NTPD config is only allowed if ntpd is selected as daemon or in an Ubuntu version override"))
+		}
+
+		if helper.IsDaemonConfigured(config.NTP, configv1alpha1.NTPD) && config.NTP.NTPD == nil {
+			allErrs = append(allErrs, field.Required(rootPath.Child("ntpd"), "NTPD config is required if ntpd is selected as daemon or in an Ubuntu version override"))
 		}
 
 		if config.NTP.NTPD != nil {
@@ -115,12 +123,23 @@ func validateAptRepositories(config []configv1alpha1.AptRepository, fldPath *fie
 		if repo.KeyURL != "" && !isValidURL(repo.KeyURL) {
 			allErrs = append(allErrs, field.Invalid(repoPath.Child("keyUrl"), repo.KeyURL, "invalid URL"))
 		}
+		if repo.KeyURL != "" && isValidURL(repo.KeyURL) && !isHTTPSURL(repo.KeyURL) {
+			allErrs = append(allErrs, field.Invalid(repoPath.Child("keyUrl"), repo.KeyURL, "must use the https scheme"))
+		}
 		if repo.KeyFormat != "" {
 			if repo.KeyURL == "" {
 				allErrs = append(allErrs, field.Forbidden(repoPath.Child("keyFormat"), "keyFormat is only valid when keyUrl is set"))
 			}
 			if strings.ToLower(string(repo.KeyFormat)) != string(configv1alpha1.KeyFormatASC) && strings.ToLower(string(repo.KeyFormat)) != string(configv1alpha1.KeyFormatGPG) {
 				allErrs = append(allErrs, field.NotSupported(repoPath.Child("keyFormat"), repo.KeyFormat, []string{string(configv1alpha1.KeyFormatASC), string(configv1alpha1.KeyFormatGPG)}))
+			}
+		}
+		if repo.Suite != "" && !validAptSuite.MatchString(repo.Suite) {
+			allErrs = append(allErrs, field.Invalid(repoPath.Child("suite"), repo.Suite, "must be a valid apt suite (alphanumeric, dots, underscores, slashes, hyphens)"))
+		}
+		for j, component := range repo.Components {
+			if !validAptComponent.MatchString(component) {
+				allErrs = append(allErrs, field.Invalid(repoPath.Child("components").Index(j), component, "must be a valid apt component (alphanumeric, dots, underscores, slashes, hyphens)"))
 			}
 		}
 	}
@@ -164,6 +183,8 @@ func validateNTPDConfig(config *configv1alpha1.NTPDConfig, fldPath *field.Path) 
 	if len(config.Servers) == 0 {
 		allErrs = append(allErrs, field.Required(fldPath.Child("servers"), "a list of NTP servers is required"))
 	}
+	allErrs = append(allErrs, validateNTPServers(config.Servers, fldPath.Child("servers"))...)
+	allErrs = append(allErrs, validateNTPInterfaces(config.Interfaces, fldPath.Child("interfaces"))...)
 	return allErrs
 }
 
@@ -171,6 +192,28 @@ func validateNTPsecConfig(config *configv1alpha1.NTPsecConfig, fldPath *field.Pa
 	allErrs := field.ErrorList{}
 	if len(config.Servers) == 0 {
 		allErrs = append(allErrs, field.Required(fldPath.Child("servers"), "a list of NTP servers is required"))
+	}
+	allErrs = append(allErrs, validateNTPServers(config.Servers, fldPath.Child("servers"))...)
+	allErrs = append(allErrs, validateNTPInterfaces(config.Interfaces, fldPath.Child("interfaces"))...)
+	return allErrs
+}
+
+func validateNTPServers(servers []string, fldPath *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
+	for i, server := range servers {
+		if !validNTPServer.MatchString(server) {
+			allErrs = append(allErrs, field.Invalid(fldPath.Index(i), server, "must be a valid NTP server (hostname or IP address)"))
+		}
+	}
+	return allErrs
+}
+
+func validateNTPInterfaces(interfaces []string, fldPath *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
+	for i, iface := range interfaces {
+		if !validNTPInterface.MatchString(iface) {
+			allErrs = append(allErrs, field.Invalid(fldPath.Index(i), iface, "must be a valid interface name or address"))
+		}
 	}
 	return allErrs
 }
@@ -210,4 +253,13 @@ func isValidURL(uri string) bool {
 	}
 
 	return u.Scheme != "" && u.Host != ""
+}
+
+func isHTTPSURL(uri string) bool {
+	u, err := url.Parse(uri)
+	if err != nil {
+		return false
+	}
+
+	return u.Scheme == "https"
 }

